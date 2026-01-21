@@ -192,6 +192,18 @@ body {
   border-color: var(--primary-300);
 }
 
+.btn-outline {
+  background: transparent;
+  color: var(--slate-600);
+  border: 2px solid var(--slate-300);
+}
+
+.btn-outline:hover {
+  background: var(--slate-50);
+  border-color: var(--slate-400);
+  color: var(--slate-700);
+}
+
 /* ========================================
    LOADER
    ======================================== */

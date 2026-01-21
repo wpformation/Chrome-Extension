@@ -7,17 +7,69 @@
 // Écoute des messages provenant de la popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'analyzePage') {
-    const results = performCompleteAudit();
-    sendResponse(results);
+    performCompleteAudit(request.forceRefresh || false).then(results => {
+      sendResponse(results);
+    });
+    return true; // Important pour async
   }
-  return true;
 });
 
 /**
- * Fonction principale d'audit qui orchestre toutes les analyses
- * @returns {Object} Résultats complets de l'audit avec recommandations
+ * Récupère une analyse depuis le cache
+ * @param {string} url - URL de la page
+ * @returns {Promise<Object|null>} Résultats cachés ou null
  */
-function performCompleteAudit() {
+async function getCachedAnalysis(url) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([url], (result) => {
+      const cached = result[url];
+      if (cached && cached.timestamp) {
+        const age = Date.now() - new Date(cached.timestamp).getTime();
+        const MAX_AGE = 24 * 60 * 60 * 1000; // 24 heures
+        if (age < MAX_AGE) {
+          console.log(`📦 Analyse chargée depuis le cache (âge: ${Math.round(age / 1000 / 60)}min)`);
+          resolve(cached);
+        } else {
+          console.log('⏰ Cache expiré (> 24h)');
+          resolve(null);
+        }
+      } else {
+        resolve(null);
+      }
+    });
+  });
+}
+
+/**
+ * Sauvegarde une analyse dans le cache
+ * @param {string} url - URL de la page
+ * @param {Object} results - Résultats de l'analyse
+ * @returns {Promise<void>}
+ */
+async function saveAnalysisToCache(url, results) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [url]: results }, () => {
+      console.log('💾 Analyse sauvegardée dans le cache');
+      resolve();
+    });
+  });
+}
+
+/**
+ * Fonction principale d'audit qui orchestre toutes les analyses
+ * @param {boolean} forceRefresh - Force une nouvelle analyse même si cache disponible
+ * @returns {Promise<Object>} Résultats complets de l'audit avec recommandations
+ */
+async function performCompleteAudit(forceRefresh = false) {
+  const url = window.location.href;
+
+  // Vérifier le cache si pas de forceRefresh
+  if (!forceRefresh) {
+    const cached = await getCachedAnalysis(url);
+    if (cached) {
+      return cached;
+    }
+  }
   console.log('🚀 Démarrage de l\'analyse professionnelle ultra-complète...');
 
   const results = {
@@ -50,6 +102,10 @@ function performCompleteAudit() {
   results.recommendations = generateRecommendations(results);
 
   console.log('✅ Analyse ultra-complète terminée:', results);
+
+  // Sauvegarder dans le cache
+  await saveAnalysisToCache(url, results);
+
   return results;
 }
 
@@ -1274,163 +1330,539 @@ function calculateUXScore(ux) {
    ======================================== */
 
 /**
- * Génère les recommandations prioritaires basées sur l'analyse
+ * Base de connaissances complète pour les recommandations enrichies
+ */
+const RECOMMENDATIONS_KNOWLEDGE_BASE = {
+  seo: {
+    title: {
+      missing: {
+        explanation: "La balise <title> est le facteur SEO le plus important de votre page. Elle apparaît comme titre cliquable dans les résultats de recherche Google et influence directement le taux de clic (CTR). Sans titre, votre page est invisible pour les moteurs de recherche et les utilisateurs ne peuvent pas comprendre le contenu de votre page dans les SERPs.",
+        tips: [
+          "Placez vos mots-clés principaux au début du titre pour maximiser leur poids SEO",
+          "Incluez votre nom de marque à la fin, séparé par un pipe (|) ou un tiret (-)",
+          "Créez un titre unique pour chaque page de votre site - jamais de duplication",
+          "Rendez le titre accrocheur et incitatif pour encourager le clic des internautes",
+          "Testez différentes formulations avec des A/B tests pour optimiser votre CTR"
+        ],
+        bestPractices: "Longueur optimale: 50-60 caractères (environ 600 pixels). Format recommandé: 'Mot-clé Principal - Bénéfice | Marque'",
+        impact: "Un titre optimisé peut améliorer votre CTR de 20-30% et augmenter votre positionnement dans les résultats de recherche. Les pages sans titre perdent en moyenne 90% de leur trafic potentiel.",
+        resources: [
+          "Google Search Central - Title Link Best Practices",
+          "Moz - Title Tag SEO Best Practices",
+          "Ahrefs - How to Craft the Perfect SEO Title Tag"
+        ]
+      },
+      tooShort: {
+        explanation: "Un titre trop court (moins de 30 caractères) n'exploite pas tout le potentiel de visibilité dans les résultats de recherche. Vous perdez l'opportunité d'inclure des mots-clés secondaires et des éléments différenciants qui peuvent améliorer votre CTR et votre pertinence SEO.",
+        tips: [
+          "Ajoutez des qualificatifs pertinents: 'Guide Complet', 'Tutoriel 2026', 'Gratuit', 'Professionnel'",
+          "Incluez votre proposition de valeur unique (UVP) pour vous démarquer de la concurrence",
+          "Ajoutez l'année en cours pour montrer que le contenu est à jour",
+          "Intégrez des mots-clés de longue traîne naturellement dans le titre",
+          "Pensez à inclure votre localisation si vous ciblez un marché local"
+        ],
+        bestPractices: "Visez une longueur de 50-60 caractères pour maximiser la visibilité sans être tronqué dans les SERPs",
+        impact: "Les titres optimisés (50-60 caractères) obtiennent un CTR 36% supérieur aux titres trop courts. Vous perdez environ 40% de l'espace disponible dans les résultats Google.",
+        resources: [
+          "Backlinko - SEO Title Tags Study (11.8M Results)",
+          "Search Engine Journal - Title Tag Length & CTR Impact"
+        ]
+      },
+      tooLong: {
+        explanation: "Un titre dépassant 60 caractères (environ 600 pixels) sera tronqué par Google avec des points de suspension (...). Les mots-clés placés après la troncature perdent leur visibilité et leur impact SEO. De plus, un titre tronqué peut paraître non professionnel et réduire significativement votre taux de clic.",
+        tips: [
+          "Placez les informations les plus importantes et vos mots-clés principaux au début du titre",
+          "Supprimez les mots superflus: articles, conjonctions, prépositions non essentielles",
+          "Utilisez des abréviations reconnues quand c'est pertinent (SEO, UX, ROI, B2B)",
+          "Remplacez les phrases longues par des formulations concises et percutantes",
+          "Testez votre titre avec un simulateur de SERP pour voir le rendu réel avant publication"
+        ],
+        bestPractices: "Limite stricte: 60 caractères ou 600 pixels. Utilisez un outil de prévisualisation SERP pour vérifier le rendu réel dans Google",
+        impact: "Les titres tronqués subissent une baisse de CTR de 15-25%. Chaque caractère au-delà de 60 dilue la puissance SEO de vos mots-clés principaux et réduit la lisibilité.",
+        resources: [
+          "Moz - SERP Preview Tool",
+          "Yoast - Why Title Length Matters for SEO"
+        ]
+      }
+    },
+    metaDescription: {
+      missing: {
+        explanation: "La meta description est votre argumentaire de vente dans les résultats Google. Sans elle, Google génère automatiquement un extrait aléatoire de votre contenu, souvent peu engageant et hors contexte. Vous perdez le contrôle sur le message qui incite les utilisateurs à cliquer sur votre lien plutôt que ceux de vos concurrents.",
+        tips: [
+          "Rédigez une description unique de 150-160 caractères qui résume la valeur de votre page",
+          "Incluez un appel à l'action clair: 'Découvrez', 'Téléchargez', 'Commandez maintenant'",
+          "Intégrez naturellement vos mots-clés principaux (ils seront mis en gras dans les SERPs)",
+          "Mettez en avant votre avantage concurrentiel ou votre proposition de valeur unique",
+          "Utilisez des chiffres, dates ou données pour renforcer la crédibilité et l'urgence"
+        ],
+        bestPractices: "Longueur optimale: 150-160 caractères. Format: Proposition de valeur + Bénéfice + Appel à l'action",
+        impact: "Une meta description optimisée peut augmenter votre CTR de 5-15%. Sans description, vous laissez Google décider de votre message marketing dans 100% des cas, avec un CTR moyen inférieur de 40%.",
+        resources: [
+          "Google Search Central - Meta Description Guidelines",
+          "Backlinko - Meta Description Best Practices",
+          "SEMrush - How to Write Meta Descriptions That Drive Clicks"
+        ]
+      }
+    },
+    h1: {
+      missing: {
+        explanation: "La balise H1 est le titre principal de votre contenu et un signal SEO fondamental pour indiquer le sujet de votre page aux moteurs de recherche. L'absence de H1 crée une confusion pour Google sur le thème principal de votre page et nuit à votre capacité à vous positionner sur vos mots-clés cibles. C'est aussi un problème d'accessibilité majeur.",
+        tips: [
+          "Créez un H1 unique et descriptif qui reflète le contenu principal de la page",
+          "Incluez votre mot-clé principal dans le H1 de manière naturelle et fluide",
+          "Limitez-vous à UN SEUL H1 par page pour une hiérarchie claire et optimale",
+          "Rendez votre H1 accrocheur pour captiver l'attention des visiteurs dès leur arrivée",
+          "Assurez-vous que le H1 soit cohérent avec votre balise <title> mais pas identique",
+          "Visez une longueur de 20-70 caractères pour un équilibre parfait entre SEO et UX"
+        ],
+        bestPractices: "Une seule balise H1 par page, contenant le mot-clé principal, entre 20-70 caractères, visible dès le chargement de la page",
+        impact: "Les pages avec un H1 optimisé ont 53% plus de chances de se positionner dans le top 10 de Google. L'absence de H1 réduit votre score SEO de 15-20 points et augmente votre taux de rebond de 10-15%.",
+        resources: [
+          "W3C - HTML Heading Elements Specification",
+          "Search Engine Land - H1 Tags & SEO Impact Study",
+          "WebAIM - Heading Structure for Accessibility"
+        ]
+      }
+    },
+    images: {
+      missingAlt: {
+        explanation: "L'attribut alt sur les images est essentiel pour le SEO, l'accessibilité et l'expérience utilisateur. Il permet aux moteurs de recherche de comprendre le contenu visuel, aide les utilisateurs malvoyants avec les lecteurs d'écran, et affiche un texte de remplacement si l'image ne se charge pas. Sans attribut alt, vous perdez des opportunités de référencement dans Google Images et créez des barrières d'accessibilité.",
+        tips: [
+          "Décrivez précisément le contenu de l'image en 10-15 mots maximum",
+          "Incluez vos mots-clés naturellement SEULEMENT si pertinent pour l'image",
+          "Évitez les formules génériques comme 'image de' ou 'photo de'",
+          "Pour les images décoratives, utilisez alt='' (vide) pour que les lecteurs d'écran les ignorent",
+          "Soyez spécifique: 'Golden retriever jouant dans un parc' plutôt que 'chien'",
+          "N'utilisez jamais de texte alt pour du keyword stuffing - Google pénalise cette pratique"
+        ],
+        bestPractices: "Texte alt descriptif de 10-15 mots, pertinent et naturel. Images décoratives: alt vide. Images informatives: description précise avec contexte.",
+        impact: "Les images avec attribut alt optimisé ont 42% plus de chances d'apparaître dans Google Images. L'absence d'alt nuit à votre conformité WCAG 2.1 niveau A et peut entraîner des pénalités légales dans certains pays. Vous perdez 15-25% du trafic potentiel via Google Images.",
+        resources: [
+          "Google Image SEO Best Practices",
+          "W3C - Alt Text Requirements (WCAG 2.1)",
+          "Moz - Image Alt Text Guide"
+        ]
+      }
+    },
+    openGraph: {
+      incomplete: {
+        explanation: "Les balises Open Graph contrôlent l'apparence de vos liens partagés sur les réseaux sociaux (Facebook, LinkedIn, Twitter/X). Sans elles, les plateformes choisissent aléatoirement le titre, l'image et la description, créant souvent des aperçus peu attractifs qui réduisent drastiquement votre taux d'engagement social et votre portée virale.",
+        tips: [
+          "Ajoutez minimum og:title, og:description, og:image et og:url dans votre <head>",
+          "Utilisez une image og:image de 1200x630 pixels (format recommandé par Facebook/LinkedIn)",
+          "Créez un og:title accrocheur, différent de votre <title> SEO, optimisé pour le social",
+          "Rédigez un og:description de 200 caractères maximum, émotionnel et engageant",
+          "Ajoutez og:type pour spécifier le type de contenu (article, website, product...)",
+          "Testez vos balises avec le Facebook Debugger et le Twitter Card Validator avant publication"
+        ],
+        bestPractices: "Minimum requis: og:title, og:description, og:image (1200x630px), og:url, og:type. Format image: JPG ou PNG, poids < 8MB",
+        impact: "Les publications avec Open Graph optimisé obtiennent 40% plus d'engagement social et 200% plus de clics. Sans Open Graph, vous perdez 60-70% du trafic potentiel des réseaux sociaux et réduisez votre viralité organique.",
+        resources: [
+          "Open Graph Protocol - Official Documentation",
+          "Facebook Sharing Debugger Tool",
+          "Twitter Card Validator",
+          "LinkedIn Post Inspector"
+        ]
+      }
+    }
+  },
+  marketing: {
+    ga4: {
+      missing: {
+        explanation: "Google Analytics 4 (GA4) est l'outil d'analyse web le plus puissant et gratuit du marché. Sans GA4, vous naviguez à l'aveugle: impossible de mesurer vos conversions, comprendre votre audience, optimiser vos campagnes marketing ou prendre des décisions data-driven. Vous perdez des données précieuses chaque jour sans pouvoir les récupérer.",
+        tips: [
+          "Créez un compte GA4 gratuit sur analytics.google.com et récupérez votre ID de mesure (G-XXXXXXXXXX)",
+          "Installez le code de suivi GA4 dans le <head> de toutes vos pages avant les autres scripts",
+          "Configurez les événements de conversion essentiels: achats, leads, inscriptions newsletter",
+          "Activez les signaux Google pour l'attribution cross-device et le remarketing avancé",
+          "Liez GA4 à Google Search Console pour croiser données SEO et comportement utilisateur",
+          "Configurez Google Tag Manager (GTM) pour une gestion flexible et sans code de vos tags"
+        ],
+        bestPractices: "Installation via gtag.js ou Google Tag Manager. Configuration minimale: événements de conversion, exclusion IP interne, durée de session personnalisée",
+        impact: "GA4 vous permet de mesurer ROI marketing, réduire coût d'acquisition client de 25-40%, augmenter taux de conversion de 15-30% grâce aux insights comportementaux. Sans analytics, vous perdez 100% de vos données et opportunités d'optimisation.",
+        resources: [
+          "Google Analytics 4 - Setup Guide Official",
+          "GA4 Event Tracking Complete Tutorial",
+          "Analytics Mania - GA4 Best Practices"
+        ]
+      }
+    },
+    gtm: {
+      missing: {
+        explanation: "Google Tag Manager (GTM) centralise la gestion de tous vos scripts marketing (GA4, Facebook Pixel, LinkedIn Insight, etc.) sans modifier le code de votre site. Sans GTM, chaque ajout ou modification de tag nécessite un développeur et un déploiement, ralentissant drastiquement votre agilité marketing et augmentant vos coûts techniques.",
+        tips: [
+          "Créez un compte GTM gratuit sur tagmanager.google.com et installez le conteneur dans votre <head>",
+          "Migrez tous vos tags existants (GA4, pixels publicitaires) vers GTM pour une gestion centralisée",
+          "Configurez un Data Layer pour transmettre des données structurées à vos tags",
+          "Utilisez le mode Aperçu de GTM pour tester vos tags avant publication en production",
+          "Créez des déclencheurs personnalisés pour tracker événements spécifiques: clics CTA, formulaires, scrolls",
+          "Documentez vos tags et utilisez des conventions de nommage claires pour faciliter la maintenance"
+        ],
+        bestPractices: "Installation: code GTM dans <head> et <body>. Structure: dossiers par catégorie, naming convention strict, versioning des conteneurs, workspace par projet",
+        impact: "GTM réduit le temps de déploiement des tags de 2 semaines à 10 minutes (99% plus rapide), diminue les coûts de développement de 60-80%, et améliore la performance du site en chargeant les scripts de manière asynchrone. ROI estimé: 500-1000% la première année.",
+        resources: [
+          "Google Tag Manager - Official Setup Guide",
+          "Simo Ahava - GTM Best Practices Blog",
+          "Analytics Mania - GTM Complete Course",
+          "Google Tag Manager Fundamentals Course (Free)"
+        ]
+      }
+    },
+    cta: {
+      missing: {
+        explanation: "Les Call-to-Action (CTA) sont les éléments qui transforment vos visiteurs en clients. Sans CTA visibles et persuasifs, vos visiteurs ne savent pas quelle action effectuer et quittent votre site sans convertir. C'est comme avoir un vendeur muet dans votre boutique: vous générez du trafic mais zéro conversion.",
+        tips: [
+          "Utilisez des verbes d'action forts et spécifiques: 'Télécharger le Guide', 'Démarrer mon essai gratuit', 'Obtenir mon devis'",
+          "Créez un contraste visuel fort: couleur vive (orange, vert, rouge) sur fond neutre",
+          "Placez votre CTA principal au-dessus de la ligne de flottaison (visible sans scroll)",
+          "Répétez vos CTA stratégiquement: après chaque section de bénéfices, en fin de page, dans la sidebar",
+          "Ajoutez de l'urgence: 'Offre limitée', 'Plus que 3 places', 'Dernières 48h'",
+          "Testez différentes formulations avec des A/B tests pour optimiser votre taux de conversion",
+          "Utilisez des micro-copies rassurantes sous le CTA: 'Sans engagement', 'Annulation gratuite', 'Garantie 30 jours'"
+        ],
+        bestPractices: "Taille minimum: 44x44 pixels (tactile). Couleur: contraste minimum 4.5:1. Position: above the fold + fin de sections. Texte: 2-5 mots maximum, orienté bénéfice",
+        impact: "Un CTA bien conçu peut augmenter votre taux de conversion de 80-200%. Les pages sans CTA clair ont un taux de conversion moyen inférieur de 90%. Chaque amélioration de 1% du taux de conversion peut générer 10-50k€ de revenus supplémentaires selon votre trafic.",
+        resources: [
+          "Unbounce - 50+ CTA Examples That Work",
+          "VWO - CTA Best Practices Guide",
+          "HubSpot - Ultimate Guide to Call-to-Action Buttons",
+          "ConversionXL - CTA Button Color & Design Study"
+        ]
+      }
+    },
+    forms: {
+      missing: {
+        explanation: "Les formulaires sont le point de contact direct avec vos prospects et clients. Sans formulaire, vous ne pouvez pas capturer de leads, générer de ventes en ligne, ou construire votre liste email. C'est une barrière totale à la génération de revenus digitaux et à la croissance de votre base de données marketing.",
+        tips: [
+          "Limitez le nombre de champs au strict minimum: nom, email, message suffisent souvent",
+          "Utilisez des placeholders et labels clairs pour guider l'utilisateur sans ambiguïté",
+          "Ajoutez une validation en temps réel pour corriger les erreurs immédiatement",
+          "Intégrez un système anti-spam (reCAPTCHA v3 invisible recommandé)",
+          "Créez une page de remerciement ou popup de confirmation après soumission",
+          "Connectez vos formulaires à votre CRM (HubSpot, Salesforce) ou email marketing (Mailchimp)",
+          "Optimisez pour mobile: champs larges, bouton submit bien visible, pas de captcha complexe",
+          "Ajoutez des éléments de réassurance: 'Vos données sont sécurisées', 'Aucun spam garanti'"
+        ],
+        bestPractices: "Nombre de champs optimal: 3-5 pour leads, 1-2 pour newsletter. Validation: temps réel + côté serveur. Mobile-first: champs full-width, auto-focus, clavier adapté au type de champ",
+        impact: "Réduire un formulaire de 11 à 4 champs augmente le taux de conversion de 120%. Chaque champ supplémentaire réduit la conversion de 5-10%. Un formulaire optimisé peut générer 50-300 leads qualifiés par mois selon votre trafic.",
+        resources: [
+          "Formstack - Form Optimization Best Practices",
+          "Typeform - Psychology of Form Design",
+          "Unbounce - Form Design Best Practices Study",
+          "Google - Web Form Best Practices (UX)"
+        ]
+      }
+    }
+  },
+  ux: {
+    viewport: {
+      missing: {
+        explanation: "La balise viewport est essentielle pour le responsive design et l'affichage correct sur mobile. Sans elle, votre site s'affiche comme sur desktop et force les utilisateurs à zoomer et scroller horizontalement, créant une expérience mobile désastreuse. Google pénalise les sites non-mobile-friendly dans son indexation mobile-first depuis 2019.",
+        tips: [
+          "Ajoutez immédiatement <meta name='viewport' content='width=device-width, initial-scale=1.0'> dans votre <head>",
+          "Testez votre site sur plusieurs tailles d'écran avec Chrome DevTools (F12 > Toggle Device Toolbar)",
+          "Assurez-vous que tous vos éléments sont responsive et s'adaptent à la largeur du viewport",
+          "Évitez le contenu de largeur fixe qui dépasse la largeur de l'écran mobile",
+          "N'utilisez jamais user-scalable=no car cela empêche l'accessibilité pour les malvoyants",
+          "Validez avec Google Mobile-Friendly Test après ajout de la balise viewport"
+        ],
+        bestPractices: "Balise viewport obligatoire: <meta name='viewport' content='width=device-width, initial-scale=1.0'>. Ne jamais bloquer le zoom (user-scalable)",
+        impact: "Sans viewport, vous perdez 60% de vos visiteurs mobiles (taux de rebond mobile 85%+). Google pénalise les sites non-mobile-friendly avec une perte de 50-70% de visibilité dans les recherches mobiles. 63% du trafic web mondial est mobile en 2026.",
+        resources: [
+          "MDN - Viewport Meta Tag Documentation",
+          "Google - Mobile-Friendly Test Tool",
+          "W3C - Responsive Web Design Basics"
+        ]
+      }
+    },
+    brokenLinks: {
+      detected: {
+        explanation: "Les liens brisés créent une expérience utilisateur frustrante, nuisent à votre crédibilité professionnelle, et sont pénalisés par Google dans son algorithme de ranking. Chaque lien 404 est une impasse pour vos visiteurs et les robots de Google, diluant votre autorité SEO et augmentant votre taux de rebond.",
+        tips: [
+          "Corrigez immédiatement tous les liens brisés détectés en les mettant à jour ou en les supprimant",
+          "Utilisez un outil de crawl régulier (Screaming Frog, Ahrefs) pour détecter les liens cassés",
+          "Créez des redirections 301 pour les pages supprimées vers des pages similaires pertinentes",
+          "Vérifiez particulièrement les liens dans votre navigation principale et footer",
+          "Testez les liens externes régulièrement car les sites tiers peuvent supprimer des pages",
+          "Configurez Google Search Console pour être alerté des erreurs 404 critiques",
+          "Créez une page 404 personnalisée avec liens utiles vers vos pages principales"
+        ],
+        bestPractices: "Audit trimestriel des liens. Redirections 301 pour pages supprimées. Page 404 personnalisée avec navigation claire. Monitoring Google Search Console actif",
+        impact: "Chaque lien brisé augmente votre taux de rebond de 5-10% et réduit votre taux de conversion. Les sites avec plus de 10 liens cassés perdent 20-30% de leur autorité SEO. Google peut déclasser les sites avec trop d'erreurs 404.",
+        resources: [
+          "Google Search Console - Crawl Errors Report",
+          "Screaming Frog - Broken Link Checker",
+          "Ahrefs - Site Audit Tool"
+        ]
+      }
+    },
+    wordCount: {
+      low: {
+        explanation: "Le contenu est roi en SEO. Une page avec moins de 300 mots est considérée comme thin content (contenu pauvre) par Google et a très peu de chances de se positionner dans les résultats de recherche. Le manque de contenu signale un faible apport de valeur pour l'utilisateur et limite drastiquement votre capacité à intégrer naturellement vos mots-clés cibles.",
+        tips: [
+          "Visez minimum 600-800 mots pour les pages standards, 1500-2500 mots pour les articles de blog SEO",
+          "Ajoutez des sections détaillant vos bénéfices, fonctionnalités, cas d'usage, témoignages clients",
+          "Enrichissez avec des FAQ répondant aux questions fréquentes de votre audience",
+          "Intégrez des études de cas, statistiques, exemples concrets pour apporter de la valeur",
+          "Structurez votre contenu avec des H2/H3 clairs pour améliorer la lisibilité",
+          "Privilégiez toujours la qualité à la quantité: contenu utile et engageant > bourrage de mots",
+          "Analysez le contenu de vos concurrents bien positionnés pour identifier le niveau de détail requis"
+        ],
+        bestPractices: "Minimum: 300 mots (pages transactionnelles), 600-800 mots (pages catégories), 1500-2500 mots (articles SEO). Densité de mots-clés: 1-2%",
+        impact: "Les pages de 1500-2000 mots obtiennent 68% plus de partages sociaux et se positionnent en moyenne 3 positions plus haut dans Google. Le passage de 300 à 1000 mots peut augmenter votre trafic organique de 50-150%.",
+        resources: [
+          "Backlinko - Ideal Blog Post Length Study",
+          "SEMrush - Content Length vs Rankings Analysis",
+          "HubSpot - How Long Should a Blog Post Be?"
+        ]
+      }
+    },
+    accessibility: {
+      issues: {
+        explanation: "L'accessibilité web garantit que votre site est utilisable par tous, incluant les 15% de la population mondiale en situation de handicap (visuel, auditif, moteur, cognitif). Au-delà de l'éthique et de la conformité légale (lois ADA, RGAA), l'accessibilité améliore l'expérience de TOUS vos utilisateurs et booste votre SEO car Google valorise les sites accessibles.",
+        tips: [
+          "Ajoutez des attributs alt descriptifs à toutes vos images pour les lecteurs d'écran",
+          "Utilisez une hiérarchie de titres logique (H1 > H2 > H3) sans sauter de niveau",
+          "Assurez un contraste minimum de 4.5:1 entre texte et arrière-plan (WCAG AA)",
+          "Rendez votre site entièrement navigable au clavier (touches Tab, Entrée, Échap)",
+          "Ajoutez des labels explicites à tous vos champs de formulaire (pas seulement placeholders)",
+          "Utilisez des éléments HTML sémantiques (<nav>, <main>, <article>) plutôt que des <div>",
+          "Testez avec WAVE, Lighthouse, ou axe DevTools pour identifier les problèmes d'accessibilité",
+          "Évitez les CAPTCHAs complexes - utilisez reCAPTCHA v3 invisible"
+        ],
+        bestPractices: "Conformité WCAG 2.1 niveau AA minimum. Tests avec lecteur d'écran (NVDA gratuit). Navigation clavier complète. Contraste texte 4.5:1 minimum",
+        impact: "Les sites accessibles ont un taux de conversion 20-40% supérieur. La conformité WCAG évite des poursuites légales (risque 500k-2M€). Google favorise les sites accessibles, potentiel gain SEO de 10-15 positions. Marché accessible = +15% d'audience potentielle.",
+        resources: [
+          "W3C - WCAG 2.1 Guidelines Official",
+          "WebAIM - Accessibility Evaluation Tools",
+          "Google Lighthouse - Accessibility Audit",
+          "WAVE - Web Accessibility Evaluation Tool",
+          "A11Y Project - Accessibility Checklist"
+        ]
+      }
+    }
+  }
+};
+
+/**
+ * Génère les recommandations prioritaires ENRICHIES basées sur l'analyse
  */
 function generateRecommendations(results) {
   const recommendations = [];
+  const KB = RECOMMENDATIONS_KNOWLEDGE_BASE;
 
-  // Recommandations SEO critiques
+  // SEO: Title
   if (!results.seo.title.exists) {
+    const knowledge = KB.seo.title.missing;
     recommendations.push({
       priority: 'Critique',
       category: 'SEO',
       title: 'Balise Title manquante',
-      description: 'Ajoutez immédiatement une balise <title> unique et descriptive (50-60 caractères).',
-      impact: 'Le titre est le facteur SEO le plus important et apparaît dans les résultats Google.',
-      action: 'Ajoutez <title>Votre Titre Optimisé | Nom du Site</title> dans le <head>.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.seo.title.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      resources: knowledge.resources
     });
   } else if (!results.seo.title.isOptimal) {
+    const knowledge = results.seo.title.length < 30 ? KB.seo.title.tooShort : KB.seo.title.tooLong;
     recommendations.push({
       priority: 'Important',
       category: 'SEO',
       title: 'Titre non optimal',
-      description: results.seo.title.recommendation,
-      impact: 'Un titre optimisé améliore votre CTR dans les résultats de recherche.',
-      action: 'Ajustez votre titre entre 50-60 caractères avec vos mots-clés principaux.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.seo.title.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // SEO: Meta Description
   if (!results.seo.metaDescription.exists) {
+    const knowledge = KB.seo.metaDescription.missing;
     recommendations.push({
       priority: 'Important',
       category: 'SEO',
       title: 'Meta Description manquante',
-      description: 'Ajoutez une meta description convaincante de 140-160 caractères.',
-      impact: 'Influence directement votre taux de clic (CTR) dans les résultats Google.',
-      action: 'Ajoutez <meta name="description" content="Votre description optimisée...">'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.seo.metaDescription.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      resources: knowledge.resources
     });
   }
 
+  // SEO: H1
   if (!results.seo.h1.isUnique) {
+    const knowledge = KB.seo.h1.missing;
     recommendations.push({
       priority: results.seo.h1.count === 0 ? 'Critique' : 'Important',
       category: 'SEO',
       title: results.seo.h1.count === 0 ? 'H1 manquant' : 'Plusieurs H1 détectés',
-      description: results.seo.h1.recommendation,
-      impact: 'Le H1 structure votre contenu et renforce votre mot-clé principal.',
-      action: 'Gardez un seul H1 unique et descriptif par page.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.seo.h1.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // SEO: Images
   if (results.seo.images.withoutAlt > 0) {
+    const knowledge = KB.seo.images.missingAlt;
     recommendations.push({
       priority: 'Moyen',
       category: 'SEO & Accessibilité',
       title: `${results.seo.images.withoutAlt} image(s) sans attribut ALT`,
-      description: results.seo.images.recommendation,
-      impact: 'Améliore le référencement image et l\'accessibilité pour les malvoyants.',
-      action: 'Ajoutez alt="description précise" sur chaque image.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.seo.images.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // SEO: Open Graph
   if (!results.seo.openGraph.complete) {
+    const knowledge = KB.seo.openGraph.incomplete;
     recommendations.push({
       priority: 'Moyen',
       category: 'Marketing',
       title: 'Open Graph incomplet',
-      description: results.seo.openGraph.recommendation,
-      impact: 'Contrôle l\'apparence de vos partages sur Facebook, LinkedIn, Twitter.',
-      action: 'Ajoutez og:title, og:description, og:image et og:url dans le <head>.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.seo.openGraph.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      resources: knowledge.resources
     });
   }
 
-  // Recommandations Marketing
+  // Marketing: GA4
   if (!results.marketing.ga4.detected) {
+    const knowledge = KB.marketing.ga4.missing;
     recommendations.push({
       priority: 'Important',
       category: 'Marketing',
       title: 'Google Analytics 4 non détecté',
-      description: results.marketing.ga4.recommendation,
-      impact: 'Impossible de mesurer votre trafic et comprendre vos visiteurs.',
-      action: 'Installez GA4 via Google Tag Manager ou en direct avec gtag.js.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.marketing.ga4.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      resources: knowledge.resources
     });
   }
 
+  // Marketing: GTM
   if (!results.marketing.gtm.detected) {
+    const knowledge = KB.marketing.gtm.missing;
     recommendations.push({
       priority: 'Moyen',
       category: 'Marketing',
       title: 'Google Tag Manager non installé',
-      description: results.marketing.gtm.recommendation,
-      impact: 'Simplifiez la gestion de tous vos pixels marketing sans toucher au code.',
-      action: 'Créez un compte GTM et installez le conteneur sur votre site.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.marketing.gtm.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      resources: knowledge.resources
     });
   }
 
+  // Marketing: CTA
   if (results.marketing.cta.count < 2) {
+    const knowledge = KB.marketing.cta.missing;
     recommendations.push({
       priority: 'Important',
       category: 'Conversion',
       title: results.marketing.cta.count === 0 ? 'Aucun CTA détecté' : 'Pas assez de CTA',
-      description: results.marketing.cta.recommendation,
-      impact: 'Les CTA sont essentiels pour convertir vos visiteurs en leads ou clients.',
-      action: 'Ajoutez au moins 2-3 CTA clairs et visibles (contact, devis, essai, téléchargement).'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.marketing.cta.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // Marketing: Forms
   if (results.marketing.forms.count === 0) {
+    const knowledge = KB.marketing.forms.missing;
     recommendations.push({
       priority: 'Important',
       category: 'Conversion',
       title: 'Aucun formulaire de conversion',
-      description: results.marketing.forms.recommendation,
-      impact: 'Sans formulaire, impossible de capturer des leads.',
-      action: 'Ajoutez un formulaire de contact, devis ou inscription newsletter.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.marketing.forms.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      ...(knowledge.tools && { tools: knowledge.tools })
     });
   }
 
-  // Recommandations UX
+  // UX: Viewport
   if (!results.ux.viewport.exists) {
+    const knowledge = KB.ux.viewport.missing;
     recommendations.push({
       priority: 'Critique',
       category: 'UX & Mobile',
       title: 'Viewport mobile manquant',
-      description: results.ux.viewport.recommendation,
-      impact: 'Votre site ne sera pas responsive sur mobile (plus de 60% du trafic web).',
-      action: 'Ajoutez <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.ux.viewport.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // UX: Broken Links
   if (results.ux.links.broken > 0) {
+    const knowledge = KB.ux.brokenLinks.detected;
     recommendations.push({
       priority: 'Important',
       category: 'UX & SEO',
       title: `${results.ux.links.broken} lien(s) cassé(s)`,
-      description: results.ux.links.recommendation,
-      impact: 'Les liens cassés nuisent à l\'expérience utilisateur et au SEO.',
-      action: 'Corrigez ou supprimez tous les liens vides ou pointant vers "#".'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.ux.links.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // UX: Word Count
   if (results.ux.wordCount < 300) {
+    const knowledge = KB.ux.wordCount.low;
     recommendations.push({
       priority: 'Moyen',
       category: 'SEO & Contenu',
       title: 'Contenu insuffisant',
-      description: results.ux.wordRecommendation,
-      impact: 'Google favorise les pages avec du contenu riche et utile (300+ mots minimum).',
-      action: 'Enrichissez votre contenu avec des informations pertinentes pour vos visiteurs.'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.ux.wordRecommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices
     });
   }
 
+  // UX: Accessibility
   if (results.ux.accessibility.issues.length > 0) {
+    const knowledge = KB.ux.accessibility.issues;
     recommendations.push({
       priority: 'Moyen',
       category: 'Accessibilité',
       title: `${results.ux.accessibility.issues.length} problème(s) d'accessibilité`,
-      description: results.ux.accessibility.recommendation,
-      impact: 'L\'accessibilité améliore l\'UX pour tous et est une obligation légale dans certains cas.',
-      action: 'Corrigez les problèmes identifiés (labels, lang, aria).'
+      description: knowledge.explanation,
+      impact: knowledge.impact,
+      action: results.ux.accessibility.recommendation,
+      tips: knowledge.tips,
+      bestPractices: knowledge.bestPractices,
+      ...(knowledge.tools && { tools: knowledge.tools }),
+      ...(knowledge.legalNote && { legalNote: knowledge.legalNote })
     });
   }
 
@@ -1554,68 +1986,208 @@ function detectCache() {
   const cache = {
     detected: [],
     cdn: [],
-    details: {}
+    details: {},
+    confidence: {},
+    score: 0
   };
 
-  // Cloudflare
-  const cfRay = document.querySelector('meta[name="cf-ray"]') || performance.getEntriesByType('navigation')[0]?.serverTiming?.find(t => t.name === 'cfRequestDuration');
-  if (cfRay || (typeof window.cloudflare !== 'undefined')) {
-    cache.cdn.push('Cloudflare');
-    cache.details.cloudflare = 'CDN & WAF détecté';
-  }
+  const htmlContent = document.documentElement.innerHTML;
 
-  // LiteSpeed Cache (WordPress)
-  if (document.documentElement.getAttribute('data-lscache-rand')) {
+  // === CACHE WORDPRESS ===
+
+  // LiteSpeed Cache
+  const lsCache = document.documentElement.getAttribute('data-lscache-rand') ||
+                  htmlContent.includes('LiteSpeed Cache') ||
+                  htmlContent.includes('lscache');
+  if (lsCache) {
     cache.detected.push('LiteSpeed Cache');
     cache.details.litespeed = 'Cache serveur haute performance';
+    cache.confidence.litespeed = document.documentElement.getAttribute('data-lscache-rand') ? 100 : 90;
   }
 
   // WP Rocket
-  if (document.querySelector('script[src*="wp-rocket"]') || document.documentElement.getAttribute('data-wpr-lazyload')) {
+  const wpRocket = document.querySelector('script[src*="wp-rocket"]') ||
+                   document.documentElement.getAttribute('data-wpr-lazyload') ||
+                   document.querySelector('[id*="rocket"]') ||
+                   htmlContent.includes('WP Rocket');
+  if (wpRocket) {
     cache.detected.push('WP Rocket');
     cache.details.wprocket = 'Plugin de cache WordPress premium';
+    cache.confidence.wprocket = document.querySelector('script[src*="wp-rocket"]') ? 100 : 95;
   }
 
   // W3 Total Cache
-  if (document.querySelector('link[href*="w3tc"]') || document.querySelector('[id*="w3tc"]')) {
+  const w3tc = document.querySelector('link[href*="w3tc"]') ||
+               document.querySelector('[id*="w3tc"]') ||
+               htmlContent.includes('W3 Total Cache') ||
+               htmlContent.includes('w3tc');
+  if (w3tc) {
     cache.detected.push('W3 Total Cache');
     cache.details.w3tc = 'Plugin de cache WordPress';
+    cache.confidence.w3tc = document.querySelector('[id*="w3tc"]') ? 100 : 90;
   }
 
   // WP Super Cache
-  if (document.querySelector('meta[name="generator"][content*="WP Super Cache"]')) {
+  const wpSuperCache = document.querySelector('meta[name="generator"][content*="WP Super Cache"]') ||
+                       htmlContent.includes('WP Super Cache') ||
+                       htmlContent.includes('wp-super-cache');
+  if (wpSuperCache) {
     cache.detected.push('WP Super Cache');
     cache.details.wpsupercache = 'Plugin de cache WordPress';
+    cache.confidence.wpsupercache = document.querySelector('meta[name="generator"][content*="WP Super Cache"]') ? 100 : 85;
+  }
+
+  // Autoptimize
+  const autoptimize = document.querySelector('link[href*="autoptimize"]') ||
+                      document.querySelector('script[src*="autoptimize"]') ||
+                      htmlContent.includes('Autoptimize');
+  if (autoptimize) {
+    cache.detected.push('Autoptimize');
+    cache.details.autoptimize = 'Optimisation et minification WordPress';
+    cache.confidence.autoptimize = document.querySelector('script[src*="autoptimize"]') ? 100 : 90;
+  }
+
+  // Redis Cache
+  const redis = htmlContent.includes('Redis Object Cache') ||
+                htmlContent.includes('redis-cache') ||
+                document.querySelector('script[src*="redis"]');
+  if (redis) {
+    cache.detected.push('Redis Cache');
+    cache.details.redis = 'Système de cache en mémoire haute performance';
+    cache.confidence.redis = htmlContent.includes('Redis Object Cache') ? 95 : 80;
+  }
+
+  // Nginx FastCGI Cache
+  const nginxFastCGI = document.querySelector('meta[name="cache-control"][content*="nginx"]') ||
+                       htmlContent.includes('nginx-cache') ||
+                       htmlContent.includes('fastcgi_cache');
+  if (nginxFastCGI) {
+    cache.detected.push('Nginx FastCGI Cache');
+    cache.details.nginxfastcgi = 'Cache serveur Nginx FastCGI';
+    cache.confidence.nginxfastcgi = 85;
+  }
+
+  // === CDN ===
+
+  // Cloudflare
+  const cfRay = document.querySelector('meta[name="cf-ray"]') ||
+                performance.getEntriesByType('navigation')[0]?.serverTiming?.find(t => t.name === 'cfRequestDuration') ||
+                (typeof window.cloudflare !== 'undefined') ||
+                document.querySelector('script[src*="cdnjs.cloudflare.com"]');
+  if (cfRay) {
+    cache.cdn.push('Cloudflare');
+    cache.details.cloudflare = 'CDN, WAF & DDoS protection';
+    cache.confidence.cloudflare = document.querySelector('meta[name="cf-ray"]') ? 100 : 95;
   }
 
   // Fastly
-  const fastlyScript = document.querySelector('script[src*="fastly.com"]');
-  const fastlyHeader = performance.getEntriesByType('navigation')[0]?.serverTiming?.find(t => t.name.includes('fastly'));
-  if (fastlyScript || fastlyHeader) {
+  const fastlyScript = document.querySelector('script[src*="fastly.com"]') ||
+                       performance.getEntriesByType('navigation')[0]?.serverTiming?.find(t => t.name.includes('fastly'));
+  if (fastlyScript) {
     cache.cdn.push('Fastly');
-    cache.details.fastly = 'CDN edge cloud';
+    cache.details.fastly = 'CDN edge cloud haute performance';
+    cache.confidence.fastly = 95;
   }
 
   // Akamai
-  const akamaiScript = document.querySelector('script[src*="akamai"]');
-  if (akamaiScript) {
+  const akamai = document.querySelector('script[src*="akamai"]') ||
+                 document.querySelector('link[href*="akamai"]') ||
+                 Array.from(document.querySelectorAll('script, link, img')).some(el =>
+                   (el.src || el.href || '').includes('akamai'));
+  if (akamai) {
     cache.cdn.push('Akamai');
-    cache.details.akamai = 'CDN entreprise';
+    cache.details.akamai = 'CDN entreprise leader mondial';
+    cache.confidence.akamai = 100;
   }
 
   // KeyCDN
-  if (document.querySelector('link[href*="keycdn.com"]') || document.querySelector('script[src*="keycdn.com"]')) {
+  const keycdn = Array.from(document.querySelectorAll('link, script, img')).some(el =>
+    (el.href || el.src || '').includes('keycdn.com'));
+  if (keycdn) {
     cache.cdn.push('KeyCDN');
+    cache.details.keycdn = 'CDN haute performance';
+    cache.confidence.keycdn = 100;
   }
 
-  // Varnish (détection via headers si disponible)
-  const hasVarnish = document.querySelector('meta[http-equiv="x-varnish"]');
-  if (hasVarnish) {
-    cache.detected.push('Varnish');
-    cache.details.varnish = 'Reverse proxy cache';
+  // Amazon CloudFront
+  const cloudfront = Array.from(document.querySelectorAll('link, script, img')).some(el =>
+    (el.href || el.src || '').includes('cloudfront.net'));
+  if (cloudfront) {
+    cache.cdn.push('Amazon CloudFront');
+    cache.details.cloudfront = 'CDN Amazon Web Services';
+    cache.confidence.cloudfront = 100;
   }
+
+  // Bunny CDN
+  const bunnycdn = Array.from(document.querySelectorAll('link, script, img')).some(el =>
+    (el.href || el.src || '').includes('bunnycdn.com'));
+  if (bunnycdn) {
+    cache.cdn.push('Bunny CDN');
+    cache.details.bunnycdn = 'CDN économique et rapide';
+    cache.confidence.bunnycdn = 100;
+  }
+
+  // Service Worker (PWA Cache)
+  try {
+    if ('serviceWorker' in navigator) {
+      // Vérification synchrone de la présence d'un service worker
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        if (registrations.length > 0) {
+          cache.detected.push('Service Worker');
+          cache.details.serviceworker = 'PWA cache côté client';
+          cache.confidence.serviceworker = 100;
+        }
+      }).catch(() => {});
+    }
+  } catch (e) {
+    // Silent fail
+  }
+
+  // === AUTRE ===
+
+  // Varnish
+  const varnish = document.querySelector('meta[http-equiv="x-varnish"]') ||
+                  htmlContent.includes('X-Varnish') ||
+                  htmlContent.includes('varnish-cache');
+  if (varnish) {
+    cache.detected.push('Varnish');
+    cache.details.varnish = 'Reverse proxy cache haute performance';
+    cache.confidence.varnish = document.querySelector('meta[http-equiv="x-varnish"]') ? 100 : 90;
+  }
+
+  // Calculer le score global
+  cache.score = calculateCacheScore(cache);
 
   return cache;
+}
+
+/**
+ * Calcule un score de performance du cache (0-100)
+ */
+function calculateCacheScore(cache) {
+  let score = 0;
+
+  // CDN présent (+40 points)
+  if (cache.cdn.length > 0) {
+    score += 40;
+  }
+
+  // Système de cache présent (+40 points)
+  if (cache.detected.length > 0) {
+    score += 40;
+  }
+
+  // Redondance (plusieurs systèmes) (+10 points)
+  if (cache.cdn.length + cache.detected.length >= 3) {
+    score += 10;
+  }
+
+  // Cloudflare bonus (très performant) (+10 points)
+  if (cache.cdn.includes('Cloudflare')) {
+    score += 10;
+  }
+
+  return Math.min(score, 100);
 }
 
 /**
