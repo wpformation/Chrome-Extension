@@ -8,24 +8,42 @@
  * @returns {Promise<Object>} Résultats de l'analyse IA
  */
 async function analyzePageWithAI() {
-  console.log('🤖 Démarrage de l\'analyse IA...');
+  console.log('🤖 ========================================');
+  console.log('🤖 DÉMARRAGE DE L\'ANALYSE IA AVEC CLAUDE');
+  console.log('🤖 ========================================');
 
   // Vérifier si une clé API est configurée
   const apiKey = await getApiKey();
   if (!apiKey) {
+    console.error('❌ ERREUR: Aucune clé API trouvée dans le storage');
     throw new Error('Aucune clé API configurée. Veuillez configurer votre clé API Claude dans les paramètres.');
   }
 
+  console.log('✅ Clé API trouvée:', apiKey.substring(0, 20) + '...');
+
   // Extraire le contenu de la page
+  console.log('📄 Extraction du contenu de la page...');
   const pageContent = extractPageContent();
+  console.log('✅ Contenu extrait:', {
+    url: pageContent.url,
+    wordCount: pageContent.wordCount,
+    images: pageContent.images.length,
+    links: pageContent.links.length
+  });
 
   // Envoyer à l'API Claude pour analyse
+  console.log('🚀 Envoi à l\'API Claude...');
   const aiAnalysis = await sendToClaudeAPI(apiKey, pageContent);
+  console.log('✅ Réponse reçue de Claude');
 
   // Parser et structurer la réponse
+  console.log('📊 Parsing de la réponse...');
   const structuredResults = parseAIResponse(aiAnalysis);
 
-  console.log('✅ Analyse IA terminée:', structuredResults);
+  console.log('✅ ========================================');
+  console.log('✅ ANALYSE IA TERMINÉE AVEC SUCCÈS !');
+  console.log('✅ ========================================');
+  console.log('Résultats:', structuredResults);
   return structuredResults;
 }
 
@@ -136,33 +154,56 @@ function detectSimpleTechnologies() {
 async function sendToClaudeAPI(apiKey, pageContent) {
   const prompt = createAnalysisPrompt(pageContent);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4096,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    })
-  });
+  console.log('📤 Envoi requête à https://api.anthropic.com/v1/messages');
+  console.log('🔑 Clé API utilisée:', apiKey.substring(0, 15) + '...');
+  console.log('📊 Model: claude-3-5-sonnet-20241022');
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`API Claude error: ${error.error?.message || response.statusText}`);
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 4096,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    console.log('📥 Réponse reçue - Status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ ERREUR API CLAUDE:', error);
+      console.error('💡 Type d\'erreur:', error.error?.type);
+      console.error('💡 Message:', error.error?.message);
+
+      throw new Error(`API Claude error (${response.status}): ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Réponse parsée avec succès');
+    console.log('📝 Taille de la réponse:', data.content[0].text.length, 'caractères');
+
+    return data.content[0].text;
+
+  } catch (error) {
+    console.error('❌ ERREUR LORS DE L\'APPEL API:', error);
+    if (error.message.includes('Failed to fetch')) {
+      console.error('💡 Erreur réseau: impossible de contacter api.anthropic.com');
+      console.error('💡 Vérifiez votre connexion internet');
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  return data.content[0].text;
 }
 
 /**

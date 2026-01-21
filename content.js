@@ -75,10 +75,15 @@ async function performCompleteAudit(forceRefresh = false, useAI = true) {
     }
   }
 
+  // Variable pour capturer l'erreur IA
+  let aiError = null;
+
   // TENTATIVE ANALYSE IA (si useAI=true et fonction disponible)
   if (useAI && typeof analyzePageWithAI === 'function') {
     try {
-      console.log('🤖 Démarrage de l\'analyse IA avec Claude Sonnet 3.5...');
+      console.log('🤖 ========================================');
+      console.log('🤖 TENTATIVE D\'ANALYSE IA');
+      console.log('🤖 ========================================');
       const aiResults = await analyzePageWithAI();
 
       // Ajouter les détections techniques (cache, CMS, Core Web Vitals)
@@ -109,13 +114,32 @@ async function performCompleteAudit(forceRefresh = false, useAI = true) {
       // Sauvegarder dans le cache
       await saveAnalysisToCache(url, aiResults);
 
-      console.log('✅ Analyse IA terminée avec succès:', aiResults);
+      console.log('✅ ========================================');
+      console.log('✅ ANALYSE IA RÉUSSIE !');
+      console.log('✅ ========================================');
       return aiResults;
 
     } catch (error) {
-      console.warn('⚠️ Analyse IA échouée, fallback vers analyse code:', error.message);
+      console.error('❌ ========================================');
+      console.error('❌ ANALYSE IA ÉCHOUÉE - FALLBACK CODE');
+      console.error('❌ ========================================');
+      console.error('❌ Erreur:', error.message);
+      console.error('❌ Stack:', error.stack);
+
+      // Capturer l'erreur pour l'afficher à l'utilisateur
+      aiError = {
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
+
       // Continue vers analyse code classique
     }
+  } else if (useAI) {
+    console.warn('⚠️ analyzePageWithAI n\'est pas disponible');
+    aiError = {
+      message: 'Fonction analyzePageWithAI non disponible',
+      timestamp: new Date().toISOString()
+    };
   }
 
   // FALLBACK: ANALYSE CODE CLASSIQUE
@@ -125,6 +149,7 @@ async function performCompleteAudit(forceRefresh = false, useAI = true) {
     url: window.location.href,
     timestamp: new Date().toISOString(),
     analysisMethod: 'Code Analysis (Fallback)',
+    aiError: aiError, // Ajouter l'erreur IA si elle existe
     seo: analyzeSEO(),
     marketing: analyzeMarketing(),
     ux: analyzeUX(),
