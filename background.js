@@ -40,7 +40,7 @@ async function callClaudeAPI(apiKey, prompt) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 4096,
       temperature: 0.7,
       messages: [
