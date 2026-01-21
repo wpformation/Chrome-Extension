@@ -82,6 +82,9 @@ function displayResults(data) {
   displayMarketingResults(data.marketing);
   displayUXResults(data.ux);
 
+  // Informations techniques (NOUVEAU)
+  displayTechnicalInfo(data);
+
   // URL analysée
   document.getElementById('currentUrl').textContent = data.url;
   analyzedUrl.style.display = 'block';
@@ -400,6 +403,107 @@ function displayUXResults(ux) {
     const percentage = Math.round((ux.links.broken / ux.links.total) * 100);
     brokenLinksStatus.textContent = `⚠ ${ux.links.broken} lien(s) cassé(s) (${percentage}%)`;
     brokenLinksStatus.className = 'metric-value warning';
+  }
+}
+
+/* ========================================
+   INFORMATIONS TECHNIQUES
+   ======================================== */
+
+function displayTechnicalInfo(data) {
+  // CMS
+  const cmsStatus = document.getElementById('cmsStatus');
+  if (data.cms && data.cms.detected) {
+    let cmsText = `✓ ${data.cms.name}`;
+    if (data.cms.version) cmsText += ` ${data.cms.version}`;
+    if (data.cms.theme) cmsText += ` (${data.cms.theme})`;
+    cmsStatus.textContent = cmsText;
+    cmsStatus.className = 'metric-value success';
+  } else {
+    cmsStatus.textContent = 'Aucun CMS détecté';
+    cmsStatus.className = 'metric-value';
+  }
+
+  // Cache & CDN
+  const cacheStatus = document.getElementById('cacheStatus');
+  const cacheDetected = data.cache?.detected || [];
+  const cdnDetected = data.cache?.cdn || [];
+  const allCache = [...cacheDetected, ...cdnDetected];
+
+  if (allCache.length > 0) {
+    cacheStatus.textContent = `✓ ${allCache.join(', ')}`;
+    cacheStatus.className = 'metric-value success';
+  } else {
+    cacheStatus.textContent = 'Aucun cache détecté';
+    cacheStatus.className = 'metric-value';
+  }
+
+  // Technologies
+  const techStatus = document.getElementById('techStatus');
+  const allTech = [];
+  if (data.technologies) {
+    if (data.technologies.frameworks?.length > 0) {
+      allTech.push(...data.technologies.frameworks);
+    }
+    if (data.technologies.libraries?.length > 0) {
+      allTech.push(...data.technologies.libraries.slice(0, 2)); // Limiter à 2
+    }
+  }
+
+  if (allTech.length > 0) {
+    techStatus.textContent = allTech.join(', ');
+    techStatus.className = 'metric-value success';
+  } else {
+    techStatus.textContent = 'HTML/CSS/JS standard';
+    techStatus.className = 'metric-value';
+  }
+
+  // Core Web Vitals
+  if (data.coreWebVitals && data.coreWebVitals.available) {
+    const cvSection = document.getElementById('coreWebVitalsSection');
+    cvSection.style.display = 'block';
+
+    // LCP
+    const lcpStatus = document.getElementById('lcpStatus');
+    if (data.coreWebVitals.lcp) {
+      const lcp = data.coreWebVitals.lcp;
+      lcpStatus.textContent = `${lcp}ms`;
+      if (lcp < 2500) {
+        lcpStatus.className = 'metric-value success';
+      } else if (lcp < 4000) {
+        lcpStatus.className = 'metric-value warning';
+      } else {
+        lcpStatus.className = 'metric-value error';
+      }
+    }
+
+    // CLS
+    const clsStatus = document.getElementById('clsStatus');
+    if (data.coreWebVitals.cls !== null) {
+      const cls = data.coreWebVitals.cls;
+      clsStatus.textContent = cls.toFixed(3);
+      if (cls < 0.1) {
+        clsStatus.className = 'metric-value success';
+      } else if (cls < 0.25) {
+        clsStatus.className = 'metric-value warning';
+      } else {
+        clsStatus.className = 'metric-value error';
+      }
+    }
+
+    // FCP
+    const fcpStatus = document.getElementById('fcpStatus');
+    if (data.coreWebVitals.fcp) {
+      const fcp = data.coreWebVitals.fcp;
+      fcpStatus.textContent = `${fcp}ms`;
+      if (fcp < 1800) {
+        fcpStatus.className = 'metric-value success';
+      } else if (fcp < 3000) {
+        fcpStatus.className = 'metric-value warning';
+      } else {
+        fcpStatus.className = 'metric-value error';
+      }
+    }
   }
 }
 

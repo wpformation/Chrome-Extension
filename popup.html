@@ -202,6 +202,47 @@
                 </div>
             </div>
 
+            <!-- Nouvelle Section: Informations Techniques -->
+            <div class="card pillar-card">
+                <div class="card-header">
+                    <div class="pillar-header">
+                        <svg class="pillar-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                        <h3>Informations Techniques</h3>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="metric">
+                        <span class="metric-label">CMS</span>
+                        <span id="cmsStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Cache & CDN</span>
+                        <span id="cacheStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Technologies</span>
+                        <span id="techStatus" class="metric-value"></span>
+                    </div>
+                    <div id="coreWebVitalsSection" style="display: none;">
+                        <div class="metric">
+                            <span class="metric-label">LCP (Largest Contentful Paint)</span>
+                            <span id="lcpStatus" class="metric-value"></span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">CLS (Cumulative Layout Shift)</span>
+                            <span id="clsStatus" class="metric-value"></span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">FCP (First Contentful Paint)</span>
+                            <span id="fcpStatus" class="metric-value"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- URL analysée -->
