@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyses Avancées - Audit Expert</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .advanced-header {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .advanced-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .advanced-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .advanced-card h2 {
+            font-size: 20px;
+            margin: 0 0 20px 0;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .data-value {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: #a16207;
+        }
+
+        .badge.error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .list-group {
+            margin-top: 12px;
+        }
+
+        .list-item {
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .keyword-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #e0e7ff;
+            color: #4f46e5;
+            border-radius: 6px;
+            margin: 4px;
+            font-size: 13px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #4f46e5);
+            transition: width 0.3s;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="advanced-header">
+        <h1>📊 Analyses Avancées SEO & Marketing</h1>
+        <p>Audit approfondi de votre site web</p>
+        <button class="back-button" onclick="window.close()">← Retour au rapport principal</button>
+    </div>
+
+    <!-- SEO Avancé -->
+    <h3 style="margin: 30px 0 20px 0; color: #1e293b;">🔍 SEO Avancé</h3>
+
+    <div class="section-grid">
+        <!-- Analyse Sémantique -->
+        <div class="advanced-card">
+            <h2>📝 Analyse Sémantique</h2>
+            <div class="data-row">
+                <span class="data-label">Nombre de mots</span>
+                <span class="data-value" id="wordCount">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Lisibilité</span>
+                <span class="data-value" id="readability">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Ratio texte/HTML</span>
+                <span class="data-value" id="textRatio">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Mots par phrase</span>
+                <span class="data-value" id="avgWords">-</span>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Top mots-clés:</strong>
+                <div id="topKeywords"></div>
+            </div>
+        </div>
+
+        <!-- Données Structurées -->
+        <div class="advanced-card">
+            <h2>🏷️ Données Structurées</h2>
+            <div class="data-row">
+                <span class="data-label">Schema.org détecté</span>
+                <span class="data-value" id="schemaDetected">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Nombre total</span>
+                <span class="data-value" id="schemaCount">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Formats</span>
+                <span class="data-value" id="schemaFormats">-</span>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Types détectés:</strong>
+                <div id="schemaTypes"></div>
+            </div>
+        </div>
+
+        <!-- SEO Local -->
+        <div class="advanced-card">
+            <h2>📍 SEO Local</h2>
+            <div class="data-row">
+                <span class="data-label">NAP détecté</span>
+                <span class="data-value" id="napDetected">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Téléphone</span>
+                <span class="data-value" id="phone">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Google Maps</span>
+                <span class="data-value" id="googleMaps">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">GeoTags</span>
+                <span class="data-value" id="geoTags">-</span>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Mots-clés locaux:</strong>
+                <div id="localKeywords"></div>
+            </div>
+        </div>
+
+        <!-- Open Graph & Twitter -->
+        <div class="advanced-card">
+            <h2>🌐 Métadonnées Sociales</h2>
+            <div class="data-row">
+                <span class="data-label">Open Graph</span>
+                <span class="data-value" id="ogStatus">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Twitter Card</span>
+                <span class="data-value" id="twitterStatus">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Image OG</span>
+                <span class="data-value" id="ogImage">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Image Twitter</span>
+                <span class="data-value" id="twitterImage">-</span>
+            </div>
+        </div>
+
+        <!-- Maillage Interne -->
+        <div class="advanced-card">
+            <h2>🔗 Maillage Interne</h2>
+            <div class="data-row">
+                <span class="data-label">Liens internes</span>
+                <span class="data-value" id="internalLinks">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Liens externes</span>
+                <span class="data-value" id="externalLinks">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Ratio Interne/Externe</span>
+                <span class="data-value" id="linkRatio">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Deep Links</span>
+                <span class="data-value" id="deepLinks">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Dofollow/Nofollow</span>
+                <span class="data-value" id="followLinks">-</span>
+            </div>
+        </div>
+
+        <!-- Performance Avancée -->
+        <div class="advanced-card">
+            <h2>⚡ Performance Avancée</h2>
+            <div class="data-row">
+                <span class="data-label">Lazy Loading Images</span>
+                <span class="data-value" id="lazyImages">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Resource Hints</span>
+                <span class="data-value" id="resourceHints">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Compression</span>
+                <span class="data-value" id="compression">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Score Performance</span>
+                <span class="data-value" id="perfScore">-</span>
+            </div>
+        </div>
+
+        <!-- Mobile-First -->
+        <div class="advanced-card">
+            <h2>📱 Mobile-First</h2>
+            <div class="data-row">
+                <span class="data-label">Viewport</span>
+                <span class="data-value" id="viewportMobile">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Media Queries</span>
+                <span class="data-value" id="mediaQueries">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Touch Targets OK</span>
+                <span class="data-value" id="touchTargets">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Polices lisibles</span>
+                <span class="data-value" id="fontSizes">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">PWA</span>
+                <span class="data-value" id="pwa">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Score Mobile</span>
+                <span class="data-value" id="mobileScore">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marketing Avancé -->
+    <h3 style="margin: 40px 0 20px 0; color: #1e293b;">📈 Marketing Avancé</h3>
+
+    <div class="section-grid">
+        <!-- Outils Marketing -->
+        <div class="advanced-card">
+            <h2>🛠️ Stack Marketing</h2>
+            <div class="data-row">
+                <span class="data-label">Total outils détectés</span>
+                <span class="data-value" id="toolsTotal">-</span>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Heatmaps:</strong>
+                <div id="heatmaps"></div>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Chat:</strong>
+                <div id="chat"></div>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Email Marketing:</strong>
+                <div id="emailTools"></div>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Avis clients:</strong>
+                <div id="reviews"></div>
+            </div>
+        </div>
+
+        <!-- Proposition de Valeur -->
+        <div class="advanced-card">
+            <h2>💎 Proposition de Valeur</h2>
+            <div class="data-row">
+                <span class="data-label">Clarté du message</span>
+                <span class="data-value" id="clarity">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Above the fold</span>
+                <span class="data-value" id="aboveFold">-</span>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Headline:</strong>
+                <div id="headline" class="list-item"></div>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Mots d'action:</strong>
+                <div id="actionWords"></div>
+            </div>
+        </div>
+
+        <!-- Psychologie Conversion -->
+        <div class="advanced-card">
+            <h2>🧠 Psychologie Conversion</h2>
+            <div class="data-row">
+                <span class="data-label">Score Psychologie</span>
+                <span class="data-value" id="psychScore">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Urgence détectée</span>
+                <span class="data-value" id="urgency">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Rareté détectée</span>
+                <span class="data-value" id="scarcity">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Témoignages</span>
+                <span class="data-value" id="testimonials">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Garanties</span>
+                <span class="data-value" id="guarantees">-</span>
+            </div>
+        </div>
+
+        <!-- Formulaires -->
+        <div class="advanced-card">
+            <h2>📝 Formulaires</h2>
+            <div class="data-row">
+                <span class="data-label">Nombre de formulaires</span>
+                <span class="data-value" id="formsCount">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Validation temps réel</span>
+                <span class="data-value" id="validation">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Autocomplete activé</span>
+                <span class="data-value" id="autocomplete">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Progress indicators</span>
+                <span class="data-value" id="progress">-</span>
+            </div>
+        </div>
+
+        <!-- CTA Optimization -->
+        <div class="advanced-card">
+            <h2>🎯 CTA Optimization</h2>
+            <div class="data-row">
+                <span class="data-label">Total CTA</span>
+                <span class="data-value" id="ctaCount">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Above the fold</span>
+                <span class="data-value" id="ctaAbove">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Taille adéquate</span>
+                <span class="data-value" id="ctaSize">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Texte actionnable</span>
+                <span class="data-value" id="ctaActionable">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Hiérarchie</span>
+                <span class="data-value" id="ctaHierarchy">-</span>
+            </div>
+        </div>
+
+        <!-- Email & A/B Testing -->
+        <div class="advanced-card">
+            <h2>📧 Email & A/B Testing</h2>
+            <div class="data-row">
+                <span class="data-label">Popup Newsletter</span>
+                <span class="data-value" id="emailPopup">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Exit Intent</span>
+                <span class="data-value" id="exitIntent">-</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Formulaires email</span>
+                <span class="data-value" id="newsletterForms">-</span>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Outils A/B Testing:</strong>
+                <div id="abTools"></div>
+            </div>
+            <div class="list-group">
+                <strong style="color: #64748b; font-size: 14px;">Personnalisation:</strong>
+                <div id="personalTools"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="advanced.js"></script>
+</body>
+</html>

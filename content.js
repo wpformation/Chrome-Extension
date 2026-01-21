@@ -86,6 +86,24 @@ async function performCompleteAudit(forceRefresh = false, useAI = true) {
       aiResults.cache = detectCache();
       aiResults.technologies = detectTechnologies();
       aiResults.coreWebVitals = measureCoreWebVitals();
+
+      // Ajouter les analyses avancées SEO
+      aiResults.semanticContent = analyzeSemanticContent();
+      aiResults.structuredData = analyzeStructuredData();
+      aiResults.localSEO = analyzeLocalSEO();
+      aiResults.socialMetadata = analyzeSocialMetadata();
+      aiResults.internalLinking = analyzeInternalLinking();
+      aiResults.advancedPerformance = analyzeAdvancedPerformance();
+      aiResults.mobileFirst = analyzeMobileFirst();
+
+      // Ajouter les analyses avancées Marketing
+      aiResults.advancedMarketingTools = detectAdvancedMarketingTools();
+      aiResults.valueProposition = analyzeValueProposition();
+      aiResults.conversionPsychology = analyzeConversionPsychology();
+      aiResults.formsAdvanced = analyzeFormsAdvanced();
+      aiResults.ctaOptimization = analyzeCTAOptimization();
+      aiResults.emailAndTesting = detectEmailAndTesting();
+
       aiResults.analysisMethod = 'AI (Claude Sonnet 3.5)';
 
       // Sauvegarder dans le cache
@@ -116,6 +134,23 @@ async function performCompleteAudit(forceRefresh = false, useAI = true) {
     cache: detectCache(),
     technologies: detectTechnologies(),
     coreWebVitals: measureCoreWebVitals(),
+
+    // ANALYSES SEO AVANCÉES
+    semanticContent: analyzeSemanticContent(),
+    structuredData: analyzeStructuredData(),
+    localSEO: analyzeLocalSEO(),
+    socialMetadata: analyzeSocialMetadata(),
+    internalLinking: analyzeInternalLinking(),
+    advancedPerformance: analyzeAdvancedPerformance(),
+    mobileFirst: analyzeMobileFirst(),
+
+    // ANALYSES MARKETING AVANCÉES
+    advancedMarketingTools: detectAdvancedMarketingTools(),
+    valueProposition: analyzeValueProposition(),
+    conversionPsychology: analyzeConversionPsychology(),
+    formsAdvanced: analyzeFormsAdvanced(),
+    ctaOptimization: analyzeCTAOptimization(),
+    emailAndTesting: detectEmailAndTesting(),
 
     recommendations: []
   };
