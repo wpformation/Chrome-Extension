@@ -154,54 +154,32 @@ function detectSimpleTechnologies() {
 async function sendToClaudeAPI(apiKey, pageContent) {
   const prompt = createAnalysisPrompt(pageContent);
 
-  console.log('📤 Envoi requête à https://api.anthropic.com/v1/messages');
+  console.log('📤 Envoi requête via background service worker');
   console.log('🔑 Clé API utilisée:', apiKey.substring(0, 15) + '...');
   console.log('📊 Model: claude-3-5-sonnet-20241022');
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4096,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
+    // Envoyer la requête au background service worker
+    const response = await chrome.runtime.sendMessage({
+      action: 'callClaudeAPI',
+      apiKey: apiKey,
+      prompt: prompt
     });
 
-    console.log('📥 Réponse reçue - Status:', response.status, response.statusText);
+    console.log('📥 Réponse reçue du background worker');
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('❌ ERREUR API CLAUDE:', error);
-      console.error('💡 Type d\'erreur:', error.error?.type);
-      console.error('💡 Message:', error.error?.message);
-
-      throw new Error(`API Claude error (${response.status}): ${error.error?.message || response.statusText}`);
+    if (!response.success) {
+      console.error('❌ ERREUR API CLAUDE:', response.error);
+      throw new Error(response.error);
     }
 
-    const data = await response.json();
     console.log('✅ Réponse parsée avec succès');
-    console.log('📝 Taille de la réponse:', data.content[0].text.length, 'caractères');
+    console.log('📝 Taille de la réponse:', response.data.length, 'caractères');
 
-    return data.content[0].text;
+    return response.data;
 
   } catch (error) {
     console.error('❌ ERREUR LORS DE L\'APPEL API:', error);
-    if (error.message.includes('Failed to fetch')) {
-      console.error('💡 Erreur réseau: impossible de contacter api.anthropic.com');
-      console.error('💡 Vérifiez votre connexion internet');
-    }
     throw error;
   }
 }
