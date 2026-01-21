@@ -1,9 +1,8 @@
 /**
- * POPUP.JS - Logique de l'interface utilisateur
- * Gère l'interaction avec l'utilisateur et la communication avec content.js
+ * POPUP.JS - Interface Utilisateur Professionnelle
+ * Extension Chrome Audit Expert
  */
 
-// Variables globales pour stocker les résultats
 let currentResults = null;
 
 // Éléments du DOM
@@ -11,84 +10,54 @@ const analyzeBtn = document.getElementById('analyzeBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
 const loader = document.getElementById('loader');
 const globalScore = document.getElementById('globalScore');
+const recommendations = document.getElementById('recommendations');
 const results = document.getElementById('results');
 const analyzedUrl = document.getElementById('analyzedUrl');
 
-/* ========================================
-   ÉCOUTEURS D'ÉVÉNEMENTS
-   ======================================== */
-
-// Lancement de l'analyse au clic
+// Lancement de l'analyse
 analyzeBtn.addEventListener('click', startAnalysis);
-
-// Export PDF au clic
 exportPdfBtn.addEventListener('click', exportToPDF);
 
-/* ========================================
-   FONCTION PRINCIPALE D'ANALYSE
-   ======================================== */
-
-/**
- * Démarre l'analyse de la page active
- */
 async function startAnalysis() {
   console.log('🔍 Démarrage de l\'analyse...');
-
-  // Afficher le loader
   showLoader();
 
   try {
-    // Récupérer l'onglet actif
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    // Injecter le content script si nécessaire et envoyer le message
-    chrome.tabs.sendMessage(
-      tab.id,
-      { action: 'analyzePage' },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Erreur de communication:', chrome.runtime.lastError);
-          showError('Impossible d\'analyser cette page. Rechargez-la et réessayez.');
-          return;
-        }
-
-        if (response) {
-          currentResults = response;
-          displayResults(response);
-        }
+    chrome.tabs.sendMessage(tab.id, { action: 'analyzePage' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Erreur:', chrome.runtime.lastError);
+        showError('Impossible d\'analyser cette page. Rechargez-la et réessayez.');
+        return;
       }
-    );
 
+      if (response) {
+        currentResults = response;
+        displayResults(response);
+      }
+    });
   } catch (error) {
-    console.error('Erreur lors de l\'analyse:', error);
-    showError('Une erreur est survenue lors de l\'analyse.');
+    console.error('Erreur:', error);
+    showError('Une erreur est survenue.');
   }
 }
 
-/**
- * Affiche le loader et masque les résultats
- */
 function showLoader() {
   loader.style.display = 'flex';
   globalScore.style.display = 'none';
+  recommendations.style.display = 'none';
   results.style.display = 'none';
   analyzedUrl.style.display = 'none';
   exportPdfBtn.style.display = 'none';
   analyzeBtn.disabled = true;
 }
 
-/**
- * Masque le loader
- */
 function hideLoader() {
   loader.style.display = 'none';
   analyzeBtn.disabled = false;
 }
 
-/**
- * Affiche un message d'erreur
- * @param {string} message - Message d'erreur
- */
 function showError(message) {
   hideLoader();
   alert(message);
@@ -98,46 +67,41 @@ function showError(message) {
    AFFICHAGE DES RÉSULTATS
    ======================================== */
 
-/**
- * Affiche tous les résultats de l'analyse
- * @param {Object} data - Résultats de l'analyse
- */
 function displayResults(data) {
   console.log('📊 Affichage des résultats:', data);
-
   hideLoader();
 
-  // Afficher le score global
+  // Score global
   displayGlobalScore(data.globalScore);
 
-  // Afficher les résultats des 3 piliers
+  // Recommandations prioritaires
+  displayRecommendations(data.recommendations);
+
+  // Résultats détaillés
   displaySEOResults(data.seo);
   displayMarketingResults(data.marketing);
   displayUXResults(data.ux);
 
-  // Afficher l'URL analysée
+  // URL analysée
   document.getElementById('currentUrl').textContent = data.url;
   analyzedUrl.style.display = 'block';
 
-  // Afficher les sections
+  // Afficher toutes les sections
   globalScore.style.display = 'flex';
+  recommendations.style.display = 'block';
   results.style.display = 'flex';
   exportPdfBtn.style.display = 'flex';
 }
 
-/**
- * Affiche le score global avec animation
- * @param {number} score - Score sur 100
- */
 function displayGlobalScore(score) {
   const scoreValue = document.getElementById('scoreValue');
   const scoreCircle = document.getElementById('scoreCircle');
   const scoreStatus = document.getElementById('scoreStatus');
 
-  // Animation du chiffre
+  // Animation du score
   animateValue(scoreValue, 0, score, 1000);
 
-  // Animation du cercle (circonférence = 2 * PI * r = 339.292)
+  // Animation du cercle
   const circumference = 339.292;
   const offset = circumference - (score / 100) * circumference;
 
@@ -145,7 +109,7 @@ function displayGlobalScore(score) {
     scoreCircle.style.strokeDashoffset = offset;
   }, 100);
 
-  // Déterminer la classe de couleur et le texte
+  // Statut et couleur
   let statusClass, statusText;
 
   if (score >= 80) {
@@ -170,16 +134,9 @@ function displayGlobalScore(score) {
   scoreStatus.className = `score-status ${statusClass}`;
 }
 
-/**
- * Anime un nombre de start à end
- * @param {HTMLElement} element - Élément à animer
- * @param {number} start - Valeur de départ
- * @param {number} end - Valeur finale
- * @param {number} duration - Durée en ms
- */
 function animateValue(element, start, end, duration) {
   const range = end - start;
-  const increment = range / (duration / 16); // 60 FPS
+  const increment = range / (duration / 16);
   let current = start;
 
   const timer = setInterval(() => {
@@ -193,24 +150,58 @@ function animateValue(element, start, end, duration) {
 }
 
 /* ========================================
-   AFFICHAGE RÉSULTATS SEO
+   RECOMMANDATIONS PRIORITAIRES
    ======================================== */
 
-/**
- * Affiche les résultats SEO
- * @param {Object} seo - Données SEO
- */
+function displayRecommendations(recs) {
+  const list = document.getElementById('recommendationsList');
+  list.innerHTML = '';
+
+  if (!recs || recs.length === 0) {
+    list.innerHTML = '<p class="no-recommendations">✨ Aucune recommandation critique. Excellent travail !</p>';
+    return;
+  }
+
+  recs.forEach((rec, index) => {
+    const recCard = document.createElement('div');
+    recCard.className = 'recommendation-card';
+    recCard.classList.add(`priority-${rec.priority.toLowerCase()}`);
+
+    recCard.innerHTML = `
+      <div class="rec-header">
+        <span class="rec-priority ${rec.priority.toLowerCase()}">${rec.priority}</span>
+        <span class="rec-category">${rec.category}</span>
+      </div>
+      <h4 class="rec-title">${rec.title}</h4>
+      <p class="rec-description">${rec.description}</p>
+      <div class="rec-details">
+        <div class="rec-impact">
+          <strong>💡 Impact:</strong> ${rec.impact}
+        </div>
+        <div class="rec-action">
+          <strong>🎯 Action:</strong> ${rec.action}
+        </div>
+      </div>
+    `;
+
+    list.appendChild(recCard);
+  });
+}
+
+/* ========================================
+   RÉSULTATS SEO
+   ======================================== */
+
 function displaySEOResults(seo) {
-  // Score du pilier
   document.getElementById('seoScore').textContent = `${seo.score}/100`;
 
   // Title
   const titleStatus = document.getElementById('titleStatus');
   if (seo.title.exists && seo.title.isOptimal) {
-    titleStatus.textContent = `✓ ${seo.title.length} chars`;
+    titleStatus.textContent = `✓ ${seo.title.length} caractères`;
     titleStatus.className = 'metric-value success';
   } else if (seo.title.exists) {
-    titleStatus.textContent = `⚠ ${seo.title.length} chars`;
+    titleStatus.textContent = `⚠ ${seo.title.length} caractères (${seo.title.status})`;
     titleStatus.className = 'metric-value warning';
   } else {
     titleStatus.textContent = '✗ Absente';
@@ -220,10 +211,10 @@ function displaySEOResults(seo) {
   // Meta Description
   const descStatus = document.getElementById('descStatus');
   if (seo.metaDescription.exists && seo.metaDescription.isOptimal) {
-    descStatus.textContent = `✓ ${seo.metaDescription.length} chars`;
+    descStatus.textContent = `✓ ${seo.metaDescription.length} caractères`;
     descStatus.className = 'metric-value success';
   } else if (seo.metaDescription.exists) {
-    descStatus.textContent = `⚠ ${seo.metaDescription.length} chars`;
+    descStatus.textContent = `⚠ ${seo.metaDescription.length} caractères`;
     descStatus.className = 'metric-value warning';
   } else {
     descStatus.textContent = '✗ Absente';
@@ -236,43 +227,44 @@ function displaySEOResults(seo) {
     h1Status.textContent = '✓ Unique';
     h1Status.className = 'metric-value success';
   } else if (seo.h1.count > 1) {
-    h1Status.textContent = `⚠ ${seo.h1.count} H1`;
+    h1Status.textContent = `⚠ ${seo.h1.count} H1 détectés`;
     h1Status.className = 'metric-value warning';
   } else {
     h1Status.textContent = '✗ Absente';
     h1Status.className = 'metric-value error';
   }
 
-  // Headings Hierarchy
+  // Hiérarchie des titres
   const headingsStatus = document.getElementById('headingsStatus');
-  const totalHeadings = seo.headings.h1 + seo.headings.h2 + seo.headings.h3 +
-                        seo.headings.h4 + seo.headings.h5 + seo.headings.h6;
   if (seo.headings.isHierarchical) {
-    headingsStatus.textContent = `✓ ${totalHeadings} titres`;
+    headingsStatus.textContent = `✓ ${seo.headings.total} titres bien structurés`;
     headingsStatus.className = 'metric-value success';
   } else {
-    headingsStatus.textContent = `⚠ ${totalHeadings} titres`;
+    headingsStatus.textContent = `⚠ ${seo.headings.total} titres - ${seo.headings.status}`;
     headingsStatus.className = 'metric-value warning';
   }
 
-  // Images without ALT
+  // Images
   const imagesStatus = document.getElementById('imagesStatus');
-  if (seo.images.withoutAlt === 0 && seo.images.total > 0) {
-    imagesStatus.textContent = `✓ 0/${seo.images.total}`;
-    imagesStatus.className = 'metric-value success';
-  } else if (seo.images.total === 0) {
+  if (seo.images.total === 0) {
     imagesStatus.textContent = 'Aucune image';
     imagesStatus.className = 'metric-value';
+  } else if (seo.images.withoutAlt === 0) {
+    imagesStatus.textContent = `✓ ${seo.images.total} images avec ALT`;
+    imagesStatus.className = 'metric-value success';
   } else {
-    imagesStatus.textContent = `⚠ ${seo.images.withoutAlt}/${seo.images.total}`;
+    imagesStatus.textContent = `⚠ ${seo.images.withoutAlt}/${seo.images.total} sans ALT`;
     imagesStatus.className = 'metric-value warning';
   }
 
   // Canonical
   const canonicalStatus = document.getElementById('canonicalStatus');
-  if (seo.canonical.exists) {
-    canonicalStatus.textContent = '✓ Présente';
+  if (seo.canonical.exists && seo.canonical.isValid) {
+    canonicalStatus.textContent = '✓ Présente et valide';
     canonicalStatus.className = 'metric-value success';
+  } else if (seo.canonical.exists) {
+    canonicalStatus.textContent = '⚠ Présente (URL invalide)';
+    canonicalStatus.className = 'metric-value warning';
   } else {
     canonicalStatus.textContent = '⚠ Absente';
     canonicalStatus.className = 'metric-value warning';
@@ -280,31 +272,26 @@ function displaySEOResults(seo) {
 }
 
 /* ========================================
-   AFFICHAGE RÉSULTATS MARKETING
+   RÉSULTATS MARKETING
    ======================================== */
 
-/**
- * Affiche les résultats Marketing
- * @param {Object} marketing - Données Marketing
- */
 function displayMarketingResults(marketing) {
-  // Score du pilier
   document.getElementById('marketingScore').textContent = `${marketing.score}/100`;
 
-  // Google Analytics 4
+  // GA4
   const ga4Status = document.getElementById('ga4Status');
   if (marketing.ga4.detected) {
-    ga4Status.textContent = '✓ Détecté';
+    ga4Status.textContent = marketing.ga4.id ? `✓ ${marketing.ga4.id}` : '✓ Détecté';
     ga4Status.className = 'metric-value success';
   } else {
     ga4Status.textContent = '✗ Non détecté';
     ga4Status.className = 'metric-value error';
   }
 
-  // Google Tag Manager
+  // GTM
   const gtmStatus = document.getElementById('gtmStatus');
   if (marketing.gtm.detected) {
-    gtmStatus.textContent = `✓ ${marketing.gtm.id || 'Détecté'}`;
+    gtmStatus.textContent = marketing.gtm.id ? `✓ ${marketing.gtm.id}` : '✓ Détecté';
     gtmStatus.className = 'metric-value success';
   } else {
     gtmStatus.textContent = '✗ Non détecté';
@@ -314,7 +301,7 @@ function displayMarketingResults(marketing) {
   // Meta Pixel
   const metaPixelStatus = document.getElementById('metaPixelStatus');
   if (marketing.metaPixel.detected) {
-    metaPixelStatus.textContent = '✓ Détecté';
+    metaPixelStatus.textContent = marketing.metaPixel.id ? `✓ ${marketing.metaPixel.id}` : '✓ Détecté';
     metaPixelStatus.className = 'metric-value success';
   } else {
     metaPixelStatus.textContent = '✗ Non détecté';
@@ -334,24 +321,24 @@ function displayMarketingResults(marketing) {
   // CTA
   const ctaStatus = document.getElementById('ctaStatus');
   if (marketing.cta.count >= 3) {
-    ctaStatus.textContent = `✓ ${marketing.cta.count} CTA`;
+    ctaStatus.textContent = `✓ ${marketing.cta.count} CTA détectés`;
     ctaStatus.className = 'metric-value success';
   } else if (marketing.cta.count > 0) {
-    ctaStatus.textContent = `⚠ ${marketing.cta.count} CTA`;
+    ctaStatus.textContent = `⚠ ${marketing.cta.count} CTA détecté(s)`;
     ctaStatus.className = 'metric-value warning';
   } else {
     ctaStatus.textContent = '✗ Aucun CTA';
     ctaStatus.className = 'metric-value error';
   }
 
-  // Social Links
+  // Réseaux sociaux
   const socialStatus = document.getElementById('socialStatus');
   const socialCount = marketing.social.totalFound;
   if (socialCount >= 3) {
-    socialStatus.textContent = `✓ ${socialCount}/4 réseaux`;
+    socialStatus.textContent = `✓ ${socialCount} réseaux liés`;
     socialStatus.className = 'metric-value success';
   } else if (socialCount > 0) {
-    socialStatus.textContent = `⚠ ${socialCount}/4 réseaux`;
+    socialStatus.textContent = `⚠ ${socialCount} réseau(x)`;
     socialStatus.className = 'metric-value warning';
   } else {
     socialStatus.textContent = '✗ Aucun lien';
@@ -360,28 +347,23 @@ function displayMarketingResults(marketing) {
 }
 
 /* ========================================
-   AFFICHAGE RÉSULTATS UX
+   RÉSULTATS UX
    ======================================== */
 
-/**
- * Affiche les résultats UX & Technique
- * @param {Object} ux - Données UX
- */
 function displayUXResults(ux) {
-  // Score du pilier
   document.getElementById('uxScore').textContent = `${ux.score}/100`;
 
   // Viewport
   const viewportStatus = document.getElementById('viewportStatus');
   if (ux.viewport.exists) {
-    viewportStatus.textContent = '✓ Présent';
+    viewportStatus.textContent = '✓ Configuré';
     viewportStatus.className = 'metric-value success';
   } else {
     viewportStatus.textContent = '✗ Absent';
     viewportStatus.className = 'metric-value error';
   }
 
-  // Word Count
+  // Nombre de mots
   const wordCountStatus = document.getElementById('wordCountStatus');
   if (ux.wordCount >= 300) {
     wordCountStatus.textContent = `✓ ${ux.wordCount} mots`;
@@ -394,29 +376,29 @@ function displayUXResults(ux) {
     wordCountStatus.className = 'metric-value error';
   }
 
-  // Reading Time
+  // Temps de lecture
   const readingTimeStatus = document.getElementById('readingTimeStatus');
   readingTimeStatus.textContent = `${ux.readingTime} min`;
   readingTimeStatus.className = 'metric-value';
 
-  // Total Links
+  // Total de liens
   const linksStatus = document.getElementById('linksStatus');
   if (ux.links.total > 0) {
-    linksStatus.textContent = `${ux.links.total} liens`;
+    linksStatus.textContent = `${ux.links.total} liens (${ux.links.internal} internes, ${ux.links.external} externes)`;
     linksStatus.className = 'metric-value success';
   } else {
     linksStatus.textContent = 'Aucun lien';
     linksStatus.className = 'metric-value warning';
   }
 
-  // Broken Links
+  // Liens cassés
   const brokenLinksStatus = document.getElementById('brokenLinksStatus');
   if (ux.links.broken === 0) {
-    brokenLinksStatus.textContent = '✓ Aucun';
+    brokenLinksStatus.textContent = '✓ Aucun lien cassé';
     brokenLinksStatus.className = 'metric-value success';
   } else {
     const percentage = Math.round((ux.links.broken / ux.links.total) * 100);
-    brokenLinksStatus.textContent = `⚠ ${ux.links.broken} (${percentage}%)`;
+    brokenLinksStatus.textContent = `⚠ ${ux.links.broken} lien(s) cassé(s) (${percentage}%)`;
     brokenLinksStatus.className = 'metric-value warning';
   }
 }
@@ -425,23 +407,19 @@ function displayUXResults(ux) {
    EXPORT PDF
    ======================================== */
 
-/**
- * Exporte les résultats en PDF
- */
 function exportToPDF() {
   if (!currentResults) {
-    alert('Aucune analyse disponible pour l\'export.');
+    alert('Aucune analyse disponible.');
     return;
   }
 
-  console.log('📄 Génération du PDF...');
+  console.log('📄 Export PDF...');
 
-  // Appeler la fonction d'export depuis pdf-export.js
   if (typeof generatePDFReport === 'function') {
     generatePDFReport(currentResults);
   } else {
-    console.error('La fonction generatePDFReport n\'est pas disponible');
+    console.error('Fonction generatePDFReport non disponible');
   }
 }
 
-console.log('✅ Popup script chargé');
+console.log('✅ Popup script professionnel chargé');

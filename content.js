@@ -1,90 +1,133 @@
 /**
- * CONTENT.JS - Moteur d'Analyse Principal
- * Ce script s'exécute dans le contexte de la page web analysée
- * et effectue toutes les vérifications SEO, Marketing et UX.
+ * CONTENT.JS - Moteur d'Analyse Professionnel
+ * Extension Chrome Audit Expert - Analyse SEO, Marketing & UX
+ * Version Professionnelle avec recommandations détaillées
  */
 
 // Écoute des messages provenant de la popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'analyzePage') {
-    // Lancement de l'analyse complète
     const results = performCompleteAudit();
     sendResponse(results);
   }
-  return true; // Important pour garder le canal de communication ouvert
+  return true;
 });
 
 /**
  * Fonction principale d'audit qui orchestre toutes les analyses
- * @returns {Object} Résultats complets de l'audit
+ * @returns {Object} Résultats complets de l'audit avec recommandations
  */
 function performCompleteAudit() {
-  console.log('🚀 Démarrage de l\'analyse de la page...');
+  console.log('🚀 Démarrage de l\'analyse professionnelle...');
 
   const results = {
     url: window.location.href,
     timestamp: new Date().toISOString(),
     seo: analyzeSEO(),
     marketing: analyzeMarketing(),
-    ux: analyzeUX()
+    ux: analyzeUX(),
+    recommendations: [] // Recommandations prioritaires
   };
 
-  // Calcul des scores pour chaque pilier
+  // Calcul des scores
   results.seo.score = calculateSEOScore(results.seo);
   results.marketing.score = calculateMarketingScore(results.marketing);
   results.ux.score = calculateUXScore(results.ux);
 
-  // Calcul du score global (moyenne pondérée)
+  // Score global (moyenne pondérée: SEO 40%, Marketing 30%, UX 30%)
   results.globalScore = Math.round(
     (results.seo.score * 0.4 + results.marketing.score * 0.3 + results.ux.score * 0.3)
   );
+
+  // Génération des recommandations prioritaires
+  results.recommendations = generateRecommendations(results);
 
   console.log('✅ Analyse terminée:', results);
   return results;
 }
 
 /* ========================================
-   PILIER 1: ANALYSE SEO
+   PILIER 1: ANALYSE SEO PROFESSIONNELLE
    ======================================== */
 
-/**
- * Analyse tous les critères SEO de la page
- * @returns {Object} Données SEO
- */
 function analyzeSEO() {
   const seo = {};
 
-  // 1. Analyse de la balise TITLE
+  // 1. TITLE TAG - Analyse approfondie
   const titleTag = document.querySelector('title');
   seo.title = {
     exists: !!titleTag,
     content: titleTag ? titleTag.textContent.trim() : '',
     length: titleTag ? titleTag.textContent.trim().length : 0,
-    isOptimal: false
+    isOptimal: false,
+    status: '',
+    recommendation: ''
   };
-  // Vérification de la longueur optimale (30-60 caractères)
-  seo.title.isOptimal = seo.title.length >= 30 && seo.title.length <= 60;
 
-  // 2. Analyse de la META DESCRIPTION
+  if (!seo.title.exists) {
+    seo.title.status = 'Critique';
+    seo.title.recommendation = 'Ajoutez immédiatement une balise <title> unique et descriptive. C\'est le facteur SEO le plus important.';
+  } else if (seo.title.length < 30) {
+    seo.title.status = 'Trop court';
+    seo.title.recommendation = `Votre titre fait ${seo.title.length} caractères. Allongez-le à 50-60 caractères pour mieux décrire votre contenu et améliorer le CTR.`;
+  } else if (seo.title.length > 70) {
+    seo.title.status = 'Trop long';
+    seo.title.recommendation = `Votre titre fait ${seo.title.length} caractères. Réduisez-le à 50-60 caractères pour éviter la troncature dans les SERP Google.`;
+  } else {
+    seo.title.isOptimal = true;
+    seo.title.status = 'Optimal';
+    seo.title.recommendation = 'Parfait ! Votre titre respecte les bonnes pratiques SEO.';
+  }
+
+  // 2. META DESCRIPTION - Analyse approfondie
   const metaDesc = document.querySelector('meta[name="description"]');
   seo.metaDescription = {
     exists: !!metaDesc,
     content: metaDesc ? metaDesc.getAttribute('content') : '',
     length: metaDesc ? metaDesc.getAttribute('content').length : 0,
-    isOptimal: false
+    isOptimal: false,
+    status: '',
+    recommendation: ''
   };
-  // Vérification de la longueur optimale (120-160 caractères)
-  seo.metaDescription.isOptimal = seo.metaDescription.length >= 120 && seo.metaDescription.length <= 160;
 
-  // 3. Analyse des balises H1
+  if (!seo.metaDescription.exists) {
+    seo.metaDescription.status = 'Absente';
+    seo.metaDescription.recommendation = 'Ajoutez une meta description unique de 140-160 caractères. Elle impacte directement votre taux de clic (CTR) dans Google.';
+  } else if (seo.metaDescription.length < 120) {
+    seo.metaDescription.status = 'Trop courte';
+    seo.metaDescription.recommendation = `Votre description fait ${seo.metaDescription.length} caractères. Allongez-la à 140-160 caractères pour maximiser l\'espace dans les résultats Google.`;
+  } else if (seo.metaDescription.length > 170) {
+    seo.metaDescription.status = 'Trop longue';
+    seo.metaDescription.recommendation = `Votre description fait ${seo.metaDescription.length} caractères. Réduisez-la à 140-160 caractères pour éviter la troncature.`;
+  } else {
+    seo.metaDescription.isOptimal = true;
+    seo.metaDescription.status = 'Optimale';
+    seo.metaDescription.recommendation = 'Excellente longueur ! Assurez-vous qu\'elle contient vos mots-clés principaux et incite au clic.';
+  }
+
+  // 3. H1 - Analyse approfondie
   const h1Tags = document.querySelectorAll('h1');
   seo.h1 = {
     count: h1Tags.length,
     isUnique: h1Tags.length === 1,
-    content: h1Tags.length > 0 ? Array.from(h1Tags).map(h => h.textContent.trim()) : []
+    content: h1Tags.length > 0 ? Array.from(h1Tags).map(h => h.textContent.trim()) : [],
+    status: '',
+    recommendation: ''
   };
 
-  // 4. Analyse de la hiérarchie des titres (H1-H6)
+  if (seo.h1.count === 0) {
+    seo.h1.status = 'Absent';
+    seo.h1.recommendation = 'Ajoutez un H1 unique qui décrit clairement le sujet principal de la page. C\'est essentiel pour le SEO.';
+  } else if (seo.h1.count > 1) {
+    seo.h1.status = 'Multiple';
+    seo.h1.recommendation = `Vous avez ${seo.h1.count} balises H1. Gardez-en une seule pour respecter la hiérarchie sémantique et renforcer votre SEO.`;
+  } else {
+    seo.h1.status = 'Parfait';
+    seo.h1.recommendation = 'Excellent ! Un seul H1 unique et descriptif.';
+  }
+
+  // 4. HIÉRARCHIE DES TITRES - Analyse détaillée
+  const headingHierarchy = analyzeHeadingHierarchy();
   seo.headings = {
     h1: document.querySelectorAll('h1').length,
     h2: document.querySelectorAll('h2').length,
@@ -92,54 +135,252 @@ function analyzeSEO() {
     h4: document.querySelectorAll('h4').length,
     h5: document.querySelectorAll('h5').length,
     h6: document.querySelectorAll('h6').length,
-    isHierarchical: checkHeadingHierarchy()
+    total: headingHierarchy.total,
+    isHierarchical: headingHierarchy.isValid,
+    errors: headingHierarchy.errors,
+    status: '',
+    recommendation: ''
   };
 
-  // 5. Audit des images sans attribut ALT
-  const images = document.querySelectorAll('img');
-  const imagesWithoutAlt = Array.from(images).filter(img => !img.hasAttribute('alt') || img.getAttribute('alt').trim() === '');
+  if (!headingHierarchy.isValid) {
+    seo.headings.status = 'Hiérarchie incorrecte';
+    seo.headings.recommendation = `Structure des titres incohérente (${seo.headings.total} titres au total). ${headingHierarchy.errors.join(' ')} Respectez l'ordre H1→H2→H3→H4.`;
+  } else if (seo.headings.total === 0) {
+    seo.headings.status = 'Aucun titre';
+    seo.headings.recommendation = 'Ajoutez des titres hiérarchisés (H1, H2, H3) pour structurer votre contenu et améliorer le SEO.';
+  } else {
+    seo.headings.status = 'Bien structurée';
+    seo.headings.recommendation = `Excellente hiérarchie ! ${seo.headings.total} titres bien organisés.`;
+  }
+
+  // 5. IMAGES - Analyse complète des attributs ALT
+  const imageAnalysis = analyzeImages();
   seo.images = {
-    total: images.length,
-    withoutAlt: imagesWithoutAlt.length,
-    percentage: images.length > 0 ? Math.round((imagesWithoutAlt.length / images.length) * 100) : 0
+    total: imageAnalysis.total,
+    withoutAlt: imageAnalysis.withoutAlt,
+    withEmptyAlt: imageAnalysis.withEmptyAlt,
+    decorative: imageAnalysis.decorative,
+    optimized: imageAnalysis.optimized,
+    percentage: imageAnalysis.percentage,
+    examples: imageAnalysis.examples,
+    status: '',
+    recommendation: ''
   };
 
-  // 6. Vérification de la balise CANONICAL
+  if (seo.images.total === 0) {
+    seo.images.status = 'Aucune image';
+    seo.images.recommendation = 'Aucune image détectée sur cette page.';
+  } else if (seo.images.withoutAlt === 0) {
+    seo.images.status = 'Parfait';
+    seo.images.recommendation = `Excellent ! Toutes vos ${seo.images.total} images ont un attribut ALT.`;
+  } else {
+    seo.images.status = 'À corriger';
+    seo.images.recommendation = `${seo.images.withoutAlt} image(s) sur ${seo.images.total} n'ont pas d'attribut ALT. Ajoutez des descriptions pour améliorer l'accessibilité et le SEO.`;
+  }
+
+  // 6. CANONICAL
   const canonicalTag = document.querySelector('link[rel="canonical"]');
   seo.canonical = {
     exists: !!canonicalTag,
-    href: canonicalTag ? canonicalTag.getAttribute('href') : ''
+    href: canonicalTag ? canonicalTag.getAttribute('href') : '',
+    isValid: false,
+    status: '',
+    recommendation: ''
   };
+
+  if (seo.canonical.exists) {
+    seo.canonical.isValid = seo.canonical.href && seo.canonical.href.startsWith('http');
+    seo.canonical.status = seo.canonical.isValid ? 'Présente' : 'Invalide';
+    seo.canonical.recommendation = seo.canonical.isValid
+      ? 'Balise canonical présente et valide.'
+      : 'Balise canonical présente mais URL invalide.';
+  } else {
+    seo.canonical.status = 'Absente';
+    seo.canonical.recommendation = 'Ajoutez une balise canonical pour éviter le duplicate content et consolider votre ranking.';
+  }
+
+  // 7. SCHEMA.ORG / Structured Data
+  const schemaData = detectStructuredData();
+  seo.schema = {
+    hasSchema: schemaData.found,
+    types: schemaData.types,
+    count: schemaData.count,
+    status: schemaData.found ? 'Détecté' : 'Absent',
+    recommendation: schemaData.found
+      ? `Excellent ! ${schemaData.count} schema(s) détecté(s): ${schemaData.types.join(', ')}.`
+      : 'Ajoutez des données structurées (Schema.org) pour enrichir vos résultats dans Google (rich snippets).'
+  };
+
+  // 8. OPEN GRAPH (partage social)
+  const ogAnalysis = analyzeOpenGraph();
+  seo.openGraph = {
+    hasOG: ogAnalysis.found,
+    tags: ogAnalysis.tags,
+    complete: ogAnalysis.complete,
+    status: ogAnalysis.status,
+    recommendation: ogAnalysis.recommendation
+  };
+
+  // 9. META ROBOTS
+  const robotsMeta = document.querySelector('meta[name="robots"]');
+  seo.robots = {
+    exists: !!robotsMeta,
+    content: robotsMeta ? robotsMeta.getAttribute('content') : '',
+    isBlocking: robotsMeta && (robotsMeta.getAttribute('content').includes('noindex') || robotsMeta.getAttribute('content').includes('nofollow')),
+    status: '',
+    recommendation: ''
+  };
+
+  if (seo.robots.isBlocking) {
+    seo.robots.status = 'Bloque l\'indexation';
+    seo.robots.recommendation = `⚠️ ATTENTION: meta robots="${seo.robots.content}" bloque l'indexation ou le suivi. Retirez si non intentionnel.`;
+  } else if (!seo.robots.exists) {
+    seo.robots.status = 'Par défaut';
+    seo.robots.recommendation = 'Pas de directive robots spécifique (comportement par défaut: index, follow).';
+  } else {
+    seo.robots.status = 'Défini';
+    seo.robots.recommendation = `Directive robots: "${seo.robots.content}"`;
+  }
 
   return seo;
 }
 
 /**
- * Vérifie si la hiérarchie des titres est correcte
- * (pas de saut de niveau, ex: H1 -> H3 sans H2)
- * @returns {boolean}
+ * Analyse la hiérarchie des titres de manière détaillée
  */
-function checkHeadingHierarchy() {
+function analyzeHeadingHierarchy() {
   const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
-  if (headings.length === 0) return false;
+  const errors = [];
+
+  if (headings.length === 0) {
+    return { total: 0, isValid: false, errors: ['Aucun titre détecté.'] };
+  }
 
   let previousLevel = 0;
+  let hasH1 = false;
+  const levelCounts = {};
+
   for (const heading of headings) {
     const currentLevel = parseInt(heading.tagName.substring(1));
+    levelCounts[currentLevel] = (levelCounts[currentLevel] || 0) + 1;
+
+    if (currentLevel === 1) hasH1 = true;
 
     // Vérifier qu'on ne saute pas de niveau (max +1)
     if (currentLevel > previousLevel + 1 && previousLevel !== 0) {
-      return false;
+      errors.push(`Saut de niveau détecté: H${previousLevel} → H${currentLevel}.`);
     }
+
     previousLevel = currentLevel;
   }
-  return true;
+
+  if (!hasH1) {
+    errors.push('Aucun H1 trouvé.');
+  }
+
+  return {
+    total: headings.length,
+    isValid: errors.length === 0,
+    errors: errors,
+    distribution: levelCounts
+  };
+}
+
+/**
+ * Analyse complète des images
+ */
+function analyzeImages() {
+  const images = document.querySelectorAll('img');
+  let withoutAlt = 0;
+  let withEmptyAlt = 0;
+  let decorative = 0;
+  const examples = [];
+
+  images.forEach(img => {
+    const alt = img.getAttribute('alt');
+    const hasAlt = img.hasAttribute('alt');
+
+    if (!hasAlt) {
+      withoutAlt++;
+      if (examples.length < 3) {
+        examples.push({ src: img.src.substring(0, 50), issue: 'Attribut ALT manquant' });
+      }
+    } else if (alt.trim() === '') {
+      withEmptyAlt++;
+      decorative++; // ALT vide = image décorative (bonne pratique)
+    }
+  });
+
+  return {
+    total: images.length,
+    withoutAlt: withoutAlt,
+    withEmptyAlt: withEmptyAlt,
+    decorative: decorative,
+    optimized: images.length - withoutAlt,
+    percentage: images.length > 0 ? Math.round((withoutAlt / images.length) * 100) : 0,
+    examples: examples
+  };
+}
+
+/**
+ * Détecte les données structurées (Schema.org, JSON-LD)
+ */
+function detectStructuredData() {
+  const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+  const types = new Set();
+
+  jsonLdScripts.forEach(script => {
+    try {
+      const data = JSON.parse(script.textContent);
+      if (data['@type']) {
+        types.add(data['@type']);
+      } else if (data['@graph']) {
+        data['@graph'].forEach(item => {
+          if (item['@type']) types.add(item['@type']);
+        });
+      }
+    } catch (e) {
+      // JSON invalide, on ignore
+    }
+  });
+
+  return {
+    found: types.size > 0,
+    types: Array.from(types),
+    count: types.size
+  };
+}
+
+/**
+ * Analyse les balises Open Graph pour le partage social
+ */
+function analyzeOpenGraph() {
+  const ogTags = {
+    'og:title': document.querySelector('meta[property="og:title"]'),
+    'og:description': document.querySelector('meta[property="og:description"]'),
+    'og:image': document.querySelector('meta[property="og:image"]'),
+    'og:url': document.querySelector('meta[property="og:url"]'),
+    'og:type': document.querySelector('meta[property="og:type"]')
+  };
+
+  const foundTags = Object.keys(ogTags).filter(key => ogTags[key]);
+  const complete = foundTags.length >= 4; // Au moins 4 tags essentiels
+
+  return {
+    found: foundTags.length > 0,
+    tags: foundTags,
+    complete: complete,
+    status: complete ? 'Complet' : (foundTags.length > 0 ? 'Partiel' : 'Absent'),
+    recommendation: complete
+      ? `Open Graph complet (${foundTags.length}/5 tags). Vos partages sur réseaux sociaux seront optimisés.`
+      : (foundTags.length > 0
+        ? `Open Graph incomplet (${foundTags.length}/5 tags). Ajoutez og:title, og:description, og:image et og:url.`
+        : 'Ajoutez les balises Open Graph pour contrôler l\'apparence de vos partages sur Facebook, LinkedIn, etc.')
+  };
 }
 
 /**
  * Calcule le score SEO sur 100
- * @param {Object} seo - Données SEO
- * @returns {number} Score sur 100
  */
 function calculateSEOScore(seo) {
   let score = 0;
@@ -148,64 +389,73 @@ function calculateSEOScore(seo) {
   if (seo.title.exists && seo.title.isOptimal) score += 20;
   else if (seo.title.exists) score += 10;
 
-  // Meta Description (20 points)
-  if (seo.metaDescription.exists && seo.metaDescription.isOptimal) score += 20;
-  else if (seo.metaDescription.exists) score += 10;
+  // Meta Description (15 points)
+  if (seo.metaDescription.exists && seo.metaDescription.isOptimal) score += 15;
+  else if (seo.metaDescription.exists) score += 8;
 
-  // H1 unique (20 points)
-  if (seo.h1.isUnique) score += 20;
-  else if (seo.h1.count > 0) score += 10;
+  // H1 unique (15 points)
+  if (seo.h1.isUnique) score += 15;
+  else if (seo.h1.count > 0) score += 8;
 
   // Hiérarchie des titres (15 points)
   if (seo.headings.isHierarchical && seo.headings.h1 > 0) score += 15;
   else if (seo.headings.h1 > 0) score += 7;
 
-  // Images avec ALT (15 points)
-  if (seo.images.withoutAlt === 0 && seo.images.total > 0) score += 15;
-  else if (seo.images.percentage <= 25) score += 10;
-  else if (seo.images.percentage <= 50) score += 5;
+  // Images avec ALT (10 points)
+  if (seo.images.withoutAlt === 0 && seo.images.total > 0) score += 10;
+  else if (seo.images.percentage <= 25) score += 7;
+  else if (seo.images.percentage <= 50) score += 3;
 
-  // Canonical (10 points)
-  if (seo.canonical.exists) score += 10;
+  // Canonical (5 points)
+  if (seo.canonical.exists && seo.canonical.isValid) score += 5;
 
-  return Math.min(score, 100);
+  // Schema.org (10 points)
+  if (seo.schema.hasSchema) score += 10;
+
+  // Open Graph (5 points)
+  if (seo.openGraph.complete) score += 5;
+  else if (seo.openGraph.hasOG) score += 2;
+
+  // Meta Robots (5 points) - pénalité si bloquant
+  if (seo.robots.isBlocking) score -= 10;
+  else score += 5;
+
+  return Math.max(0, Math.min(score, 100));
 }
 
 /* ========================================
-   PILIER 2: ANALYSE MARKETING
+   PILIER 2: ANALYSE MARKETING AVANCÉE
    ======================================== */
 
-/**
- * Analyse tous les outils marketing et tracking
- * @returns {Object} Données Marketing
- */
 function analyzeMarketing() {
   const marketing = {};
 
-  // 1. Détection de Google Analytics 4 (GA4)
+  // Détection avancée d'outils marketing
   marketing.ga4 = detectGA4();
-
-  // 2. Détection de Google Tag Manager (GTM)
   marketing.gtm = detectGTM();
-
-  // 3. Détection du Meta Pixel (Facebook Pixel)
   marketing.metaPixel = detectMetaPixel();
-
-  // 4. Détection de HubSpot
   marketing.hubspot = detectHubSpot();
+  marketing.linkedinInsight = detectLinkedInInsight();
+  marketing.tiktokPixel = detectTikTokPixel();
+  marketing.hotjar = detectHotjar();
+  marketing.clarity = detectClarity();
+  marketing.intercom = detectIntercom();
+  marketing.drift = detectDrift();
 
-  // 5. Détection des CTA (Call-to-Action)
+  // Analyse CTA améliorée
   marketing.cta = detectCTA();
 
-  // 6. Détection des liens vers réseaux sociaux
+  // Détection des liens sociaux
   marketing.social = detectSocialLinks();
+
+  // Formulaires de conversion
+  marketing.forms = analyzeForms();
 
   return marketing;
 }
 
 /**
  * Détecte Google Analytics 4
- * @returns {Object}
  */
 function detectGA4() {
   const scripts = Array.from(document.querySelectorAll('script'));
@@ -215,18 +465,30 @@ function detectGA4() {
     script.textContent.includes('G-')
   );
 
-  // Vérifier aussi dans le dataLayer
   const hasDataLayer = typeof window.dataLayer !== 'undefined';
+
+  // Extraction de l'ID GA4
+  let ga4Id = '';
+  if (hasGA4Script) {
+    const ga4Script = scripts.find(s => s.textContent.includes('G-'));
+    if (ga4Script) {
+      const match = ga4Script.textContent.match(/G-[A-Z0-9]+/);
+      if (match) ga4Id = match[0];
+    }
+  }
 
   return {
     detected: hasGA4Script || hasDataLayer,
-    method: hasGA4Script ? 'Script gtag.js' : (hasDataLayer ? 'dataLayer' : 'Non détecté')
+    id: ga4Id,
+    method: hasGA4Script ? 'Script gtag.js' : (hasDataLayer ? 'dataLayer' : 'Non détecté'),
+    recommendation: hasGA4Script || hasDataLayer
+      ? `GA4 détecté${ga4Id ? ' (ID: ' + ga4Id + ')' : ''}. Assurez-vous de configurer les événements de conversion.`
+      : 'Installez Google Analytics 4 pour suivre votre trafic et comprendre le comportement de vos visiteurs.'
   };
 }
 
 /**
  * Détecte Google Tag Manager
- * @returns {Object}
  */
 function detectGTM() {
   const scripts = Array.from(document.querySelectorAll('script'));
@@ -235,7 +497,6 @@ function detectGTM() {
     script.textContent.includes('GTM-')
   );
 
-  // Extraction de l'ID GTM
   let gtmId = '';
   if (hasGTM) {
     const gtmScript = scripts.find(s => s.textContent.includes('GTM-'));
@@ -247,13 +508,15 @@ function detectGTM() {
 
   return {
     detected: hasGTM,
-    id: gtmId
+    id: gtmId,
+    recommendation: hasGTM
+      ? `GTM détecté${gtmId ? ' (' + gtmId + ')' : ''}. Centralisez vos tags marketing pour une gestion simplifiée.`
+      : 'Installez Google Tag Manager pour gérer facilement tous vos pixels et tags marketing sans modifier le code.'
   };
 }
 
 /**
- * Détecte le Meta Pixel (Facebook Pixel)
- * @returns {Object}
+ * Détecte Meta Pixel (Facebook)
  */
 function detectMetaPixel() {
   const scripts = Array.from(document.querySelectorAll('script'));
@@ -263,14 +526,26 @@ function detectMetaPixel() {
     script.src.includes('connect.facebook.net')
   );
 
+  let pixelId = '';
+  if (hasMetaPixel) {
+    const pixelScript = scripts.find(s => s.textContent.includes('fbq(\'init\''));
+    if (pixelScript) {
+      const match = pixelScript.textContent.match(/fbq\('init',\s*'(\d+)'/);
+      if (match) pixelId = match[1];
+    }
+  }
+
   return {
-    detected: hasMetaPixel
+    detected: hasMetaPixel,
+    id: pixelId,
+    recommendation: hasMetaPixel
+      ? `Meta Pixel détecté${pixelId ? ' (ID: ' + pixelId + ')' : ''}. Configurez les événements de conversion pour vos campagnes Facebook/Instagram.`
+      : 'Installez le Meta Pixel pour suivre les conversions de vos publicités Facebook et Instagram, et créer des audiences personnalisées.'
   };
 }
 
 /**
  * Détecte HubSpot
- * @returns {Object}
  */
 function detectHubSpot() {
   const scripts = Array.from(document.querySelectorAll('script'));
@@ -280,67 +555,192 @@ function detectHubSpot() {
   );
 
   return {
-    detected: hasHubSpot
+    detected: hasHubSpot,
+    recommendation: hasHubSpot
+      ? 'HubSpot détecté. Exploitez le tracking comportemental pour scorer vos leads et personnaliser vos campagnes.'
+      : 'HubSpot permet d\'automatiser votre marketing, gérer vos contacts et scorer vos leads automatiquement.'
   };
 }
 
 /**
- * Détecte les boutons CTA (Call-to-Action)
- * @returns {Object}
+ * Détecte LinkedIn Insight Tag
+ */
+function detectLinkedInInsight() {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  const hasLinkedIn = scripts.some(script =>
+    script.textContent.includes('_linkedin_partner_id') ||
+    script.src.includes('snap.licdn.com')
+  );
+
+  return {
+    detected: hasLinkedIn,
+    recommendation: hasLinkedIn
+      ? 'LinkedIn Insight Tag détecté. Suivez les conversions de vos campagnes LinkedIn Ads et créez des audiences de retargeting.'
+      : 'Installez le LinkedIn Insight Tag pour mesurer l\'efficacité de vos campagnes B2B LinkedIn et créer des audiences.'
+  };
+}
+
+/**
+ * Détecte TikTok Pixel
+ */
+function detectTikTokPixel() {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  const hasTikTok = scripts.some(script =>
+    script.textContent.includes('ttq.') ||
+    script.src.includes('analytics.tiktok.com')
+  );
+
+  return {
+    detected: hasTikTok,
+    recommendation: hasTikTok
+      ? 'TikTok Pixel détecté. Optimisez vos campagnes TikTok Ads avec le suivi des conversions.'
+      : 'Installez le TikTok Pixel si vous faites de la publicité sur TikTok pour suivre les conversions et créer des audiences.'
+  };
+}
+
+/**
+ * Détecte Hotjar
+ */
+function detectHotjar() {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  const hasHotjar = scripts.some(script =>
+    script.textContent.includes('hotjar') ||
+    script.src.includes('static.hotjar.com')
+  );
+
+  return {
+    detected: hasHotjar,
+    recommendation: hasHotjar
+      ? 'Hotjar détecté. Utilisez les heatmaps et enregistrements de session pour optimiser votre UX.'
+      : 'Hotjar permet de visualiser le comportement des utilisateurs via heatmaps, enregistrements et feedback.'
+  };
+}
+
+/**
+ * Détecte Microsoft Clarity
+ */
+function detectClarity() {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  const hasClarity = scripts.some(script =>
+    script.textContent.includes('clarity') ||
+    script.src.includes('clarity.ms')
+  );
+
+  return {
+    detected: hasClarity,
+    recommendation: hasClarity
+      ? 'Microsoft Clarity détecté. Analysez les sessions et heatmaps pour comprendre le comportement utilisateur.'
+      : 'Microsoft Clarity est gratuit et offre des heatmaps, enregistrements de sessions et insights sur l\'engagement.'
+  };
+}
+
+/**
+ * Détecte Intercom
+ */
+function detectIntercom() {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  const hasIntercom = scripts.some(script =>
+    script.textContent.includes('Intercom') ||
+    script.src.includes('widget.intercom.io')
+  );
+
+  return {
+    detected: hasIntercom,
+    recommendation: hasIntercom
+      ? 'Intercom détecté. Personnalisez vos messages in-app et automatisez votre support client.'
+      : 'Intercom permet d\'engager vos visiteurs via chat, messages automatisés et support client centralisé.'
+  };
+}
+
+/**
+ * Détecte Drift
+ */
+function detectDrift() {
+  const scripts = Array.from(document.querySelectorAll('script'));
+  const hasDrift = scripts.some(script =>
+    script.textContent.includes('drift') ||
+    script.src.includes('js.driftt.com')
+  );
+
+  return {
+    detected: hasDrift,
+    recommendation: hasDrift
+      ? 'Drift détecté. Qualifiez vos leads en temps réel avec le chatbot conversationnel.'
+      : 'Drift permet de qualifier et convertir vos visiteurs B2B via chat conversationnel et automatisation.'
+  };
+}
+
+/**
+ * Détection améliorée des CTA (Call-to-Action)
  */
 function detectCTA() {
-  // Mots-clés de conversion courants
   const ctaKeywords = [
-    'acheter', 'buy', 'commander', 'order',
-    'contact', 'contacter', 'devis', 'quote',
-    'télécharger', 'download', 'essai', 'trial',
-    'inscription', 'sign up', 'subscribe', 'abonner',
-    'démarrer', 'start', 'commencer', 'begin',
-    'réserver', 'book', 'prendre rendez-vous'
+    // Français
+    'acheter', 'commander', 'contact', 'contacter', 'devis',
+    'télécharger', 'télécharge', 'essai gratuit', 'essayer', 'inscription',
+    'inscrire', 's\'inscrire', 'démarrer', 'commencer', 'réserver',
+    'prendre rendez-vous', 'obtenir', 'demander', 'découvrir',
+    // Anglais
+    'buy', 'order', 'contact', 'quote', 'download',
+    'trial', 'try', 'sign up', 'subscribe', 'start',
+    'begin', 'book', 'get started', 'get', 'request', 'discover'
   ];
 
-  const buttons = document.querySelectorAll('button, a.btn, a.button, [role="button"]');
-  const links = document.querySelectorAll('a');
+  const buttons = document.querySelectorAll('button, a.btn, a.button, input[type="submit"], [role="button"]');
+  const ctaSet = new Set();
+  const examples = [];
 
-  let ctaCount = 0;
-  const detectedCTAs = [];
-
-  // Analyser les boutons
   buttons.forEach(btn => {
-    const text = btn.textContent.toLowerCase().trim();
-    if (ctaKeywords.some(keyword => text.includes(keyword))) {
-      ctaCount++;
-      detectedCTAs.push(text.substring(0, 50));
-    }
-  });
+    const text = (btn.textContent || btn.value || '').toLowerCase().trim();
 
-  // Analyser les liens qui ressemblent à des CTA
-  links.forEach(link => {
-    const text = link.textContent.toLowerCase().trim();
-    if (ctaKeywords.some(keyword => text.includes(keyword)) && text.length < 50) {
-      ctaCount++;
-      if (detectedCTAs.length < 5) { // Limiter à 5 exemples
-        detectedCTAs.push(text.substring(0, 50));
+    // Ignorer les boutons vides ou très longs (probablement pas des CTA)
+    if (text.length === 0 || text.length > 50) return;
+
+    // Vérifier si le texte contient un mot-clé CTA
+    const isCTA = ctaKeywords.some(keyword => {
+      // Correspondance exacte ou au début d'un mot
+      return text === keyword || text.startsWith(keyword + ' ') || text.includes(' ' + keyword);
+    });
+
+    if (isCTA) {
+      ctaSet.add(text);
+      if (examples.length < 5) {
+        examples.push(text.substring(0, 40));
       }
     }
   });
 
+  const count = ctaSet.size;
+  let recommendation = '';
+
+  if (count === 0) {
+    recommendation = 'Aucun CTA détecté ! Ajoutez des boutons d\'action clairs (contact, devis, téléchargement, essai, etc.) pour convertir vos visiteurs.';
+  } else if (count < 2) {
+    recommendation = `Seulement ${count} CTA détecté. Ajoutez plus de points de conversion stratégiques sur votre page.`;
+  } else if (count < 4) {
+    recommendation = `${count} CTA détectés. Bien ! Testez différents emplacements et formulations pour optimiser votre taux de conversion.`;
+  } else {
+    recommendation = `${count} CTA détectés. Excellent ! Assurez-vous qu'ils sont bien visibles et cohérents avec votre parcours utilisateur.`;
+  }
+
   return {
-    count: ctaCount,
-    examples: [...new Set(detectedCTAs)].slice(0, 5) // Dédupliquer et limiter
+    count: count,
+    examples: examples,
+    recommendation: recommendation
   };
 }
 
 /**
- * Détecte les liens vers les réseaux sociaux
- * @returns {Object}
+ * Détection des liens sociaux
  */
 function detectSocialLinks() {
   const socialPlatforms = {
-    linkedin: { found: false, count: 0 },
-    twitter: { found: false, count: 0 },
-    facebook: { found: false, count: 0 },
-    instagram: { found: false, count: 0 }
+    linkedin: { found: false, count: 0, urls: [] },
+    twitter: { found: false, count: 0, urls: [] },
+    facebook: { found: false, count: 0, urls: [] },
+    instagram: { found: false, count: 0, urls: [] },
+    youtube: { found: false, count: 0, urls: [] },
+    tiktok: { found: false, count: 0, urls: [] }
   };
 
   const links = document.querySelectorAll('a[href]');
@@ -351,171 +751,608 @@ function detectSocialLinks() {
     if (href.includes('linkedin.com')) {
       socialPlatforms.linkedin.found = true;
       socialPlatforms.linkedin.count++;
+      if (socialPlatforms.linkedin.urls.length < 2) socialPlatforms.linkedin.urls.push(link.href);
     }
     if (href.includes('twitter.com') || href.includes('x.com')) {
       socialPlatforms.twitter.found = true;
       socialPlatforms.twitter.count++;
+      if (socialPlatforms.twitter.urls.length < 2) socialPlatforms.twitter.urls.push(link.href);
     }
-    if (href.includes('facebook.com')) {
+    if (href.includes('facebook.com') && !href.includes('facebook.com/tr')) {
       socialPlatforms.facebook.found = true;
       socialPlatforms.facebook.count++;
+      if (socialPlatforms.facebook.urls.length < 2) socialPlatforms.facebook.urls.push(link.href);
     }
     if (href.includes('instagram.com')) {
       socialPlatforms.instagram.found = true;
       socialPlatforms.instagram.count++;
+      if (socialPlatforms.instagram.urls.length < 2) socialPlatforms.instagram.urls.push(link.href);
+    }
+    if (href.includes('youtube.com') || href.includes('youtu.be')) {
+      socialPlatforms.youtube.found = true;
+      socialPlatforms.youtube.count++;
+      if (socialPlatforms.youtube.urls.length < 2) socialPlatforms.youtube.urls.push(link.href);
+    }
+    if (href.includes('tiktok.com')) {
+      socialPlatforms.tiktok.found = true;
+      socialPlatforms.tiktok.count++;
+      if (socialPlatforms.tiktok.urls.length < 2) socialPlatforms.tiktok.urls.push(link.href);
     }
   });
 
   const totalFound = Object.values(socialPlatforms).filter(p => p.found).length;
+  const platformNames = Object.keys(socialPlatforms).filter(key => socialPlatforms[key].found);
+
+  let recommendation = '';
+  if (totalFound === 0) {
+    recommendation = 'Aucun lien vers les réseaux sociaux. Ajoutez des liens vers vos profils pour développer votre communauté.';
+  } else if (totalFound < 3) {
+    recommendation = `${totalFound} réseau(x) social(aux) lié(s): ${platformNames.join(', ')}. Ajoutez plus de liens pour élargir votre présence sociale.`;
+  } else {
+    recommendation = `${totalFound} réseaux sociaux liés: ${platformNames.join(', ')}. Excellente présence sociale !`;
+  }
 
   return {
     platforms: socialPlatforms,
-    totalFound: totalFound
+    totalFound: totalFound,
+    platformNames: platformNames,
+    recommendation: recommendation
+  };
+}
+
+/**
+ * Analyse des formulaires de conversion
+ */
+function analyzeForms() {
+  const forms = document.querySelectorAll('form');
+  const formData = [];
+
+  forms.forEach((form, index) => {
+    const inputs = form.querySelectorAll('input, textarea, select');
+    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+
+    formData.push({
+      index: index,
+      inputs: inputs.length,
+      hasSubmit: !!submitBtn,
+      action: form.action || 'Non défini'
+    });
+  });
+
+  let recommendation = '';
+  if (forms.length === 0) {
+    recommendation = 'Aucun formulaire détecté. Ajoutez des formulaires de contact, devis ou inscription pour capturer des leads.';
+  } else {
+    recommendation = `${forms.length} formulaire(s) détecté(s). Optimisez-les pour maximiser les conversions (champs minimum, labels clairs, validation en temps réel).`;
+  }
+
+  return {
+    count: forms.length,
+    forms: formData,
+    recommendation: recommendation
   };
 }
 
 /**
  * Calcule le score Marketing sur 100
- * @param {Object} marketing - Données Marketing
- * @returns {number} Score sur 100
  */
 function calculateMarketingScore(marketing) {
   let score = 0;
 
-  // GA4 (20 points)
-  if (marketing.ga4.detected) score += 20;
-
-  // GTM (20 points)
-  if (marketing.gtm.detected) score += 20;
-
-  // Meta Pixel (15 points)
-  if (marketing.metaPixel.detected) score += 15;
-
-  // HubSpot (10 points)
-  if (marketing.hubspot.detected) score += 10;
+  // Outils de tracking (60 points au total)
+  if (marketing.ga4.detected) score += 15;
+  if (marketing.gtm.detected) score += 15;
+  if (marketing.metaPixel.detected) score += 10;
+  if (marketing.hubspot.detected) score += 5;
+  if (marketing.linkedinInsight.detected) score += 5;
+  if (marketing.tiktokPixel.detected) score += 3;
+  if (marketing.hotjar.detected) score += 4;
+  if (marketing.clarity.detected) score += 3;
 
   // CTA (20 points)
   if (marketing.cta.count >= 5) score += 20;
   else if (marketing.cta.count >= 3) score += 15;
   else if (marketing.cta.count >= 1) score += 10;
+  else score += 0;
 
-  // Réseaux sociaux (15 points)
-  if (marketing.social.totalFound >= 4) score += 15;
-  else if (marketing.social.totalFound >= 3) score += 12;
-  else if (marketing.social.totalFound >= 2) score += 8;
-  else if (marketing.social.totalFound >= 1) score += 5;
+  // Réseaux sociaux (10 points)
+  if (marketing.social.totalFound >= 4) score += 10;
+  else if (marketing.social.totalFound >= 3) score += 7;
+  else if (marketing.social.totalFound >= 2) score += 5;
+  else if (marketing.social.totalFound >= 1) score += 3;
+
+  // Formulaires (10 points)
+  if (marketing.forms.count >= 2) score += 10;
+  else if (marketing.forms.count >= 1) score += 7;
 
   return Math.min(score, 100);
 }
 
 /* ========================================
-   PILIER 3: ANALYSE UX & TECHNIQUE
+   PILIER 3: ANALYSE UX & ACCESSIBILITÉ
    ======================================== */
 
-/**
- * Analyse l'expérience utilisateur et les aspects techniques
- * @returns {Object} Données UX
- */
 function analyzeUX() {
   const ux = {};
 
-  // 1. Vérification du Viewport (responsive)
+  // 1. Viewport Mobile
   const viewportMeta = document.querySelector('meta[name="viewport"]');
   ux.viewport = {
     exists: !!viewportMeta,
-    content: viewportMeta ? viewportMeta.getAttribute('content') : ''
+    content: viewportMeta ? viewportMeta.getAttribute('content') : '',
+    recommendation: viewportMeta
+      ? 'Viewport mobile configuré. Votre site est responsive.'
+      : 'CRITIQUE: Ajoutez <meta name="viewport" content="width=device-width, initial-scale=1.0"> pour rendre votre site mobile-friendly.'
   };
 
-  // 2. Comptage des mots
+  // 2. Comptage des mots et temps de lecture
   ux.wordCount = countWords();
+  ux.readingTime = Math.ceil(ux.wordCount / 200); // 200 mots/minute
 
-  // 3. Temps de lecture estimé (basé sur 200 mots/minute)
-  ux.readingTime = Math.ceil(ux.wordCount / 200);
+  let wordRecommendation = '';
+  if (ux.wordCount < 50) {
+    wordRecommendation = `Très peu de contenu (${ux.wordCount} mots). Enrichissez votre page pour améliorer le SEO et l'engagement.`;
+  } else if (ux.wordCount < 300) {
+    wordRecommendation = `Contenu léger (${ux.wordCount} mots). Visez 300-500 mots minimum pour un meilleur référencement.`;
+  } else if (ux.wordCount < 1000) {
+    wordRecommendation = `Bon volume de contenu (${ux.wordCount} mots). Continuez à fournir de la valeur à vos visiteurs.`;
+  } else {
+    wordRecommendation = `Excellent volume de contenu (${ux.wordCount} mots, ~${ux.readingTime} min de lecture). Google favorise le contenu riche.`;
+  }
+  ux.wordRecommendation = wordRecommendation;
 
-  // 4. Analyse des liens
-  ux.links = analyzeLinks();
+  // 3. Analyse des liens (améliorée)
+  ux.links = analyzeLinksAdvanced();
+
+  // 4. Accessibilité
+  ux.accessibility = analyzeAccessibility();
+
+  // 5. Performance (basique)
+  ux.performance = analyzeBasicPerformance();
+
+  // 6. Sémantique HTML5
+  ux.semantics = analyzeSemantics();
 
   return ux;
 }
 
 /**
- * Compte le nombre de mots dans le contenu principal
- * @returns {number}
+ * Compte les mots dans le contenu principal
  */
 function countWords() {
-  // Récupérer le texte visible de la page
   const bodyText = document.body.innerText || document.body.textContent;
-
-  // Nettoyer et compter les mots
-  const words = bodyText
-    .trim()
-    .split(/\s+/)
-    .filter(word => word.length > 0);
-
+  const words = bodyText.trim().split(/\s+/).filter(word => word.length > 0);
   return words.length;
 }
 
 /**
- * Analyse tous les liens de la page
- * @returns {Object}
+ * Analyse avancée des liens
  */
-function analyzeLinks() {
+function analyzeLinksAdvanced() {
   const allLinks = document.querySelectorAll('a[href]');
-
-  let brokenLinks = 0;
+  let broken = 0;
+  let external = 0;
+  let internal = 0;
+  let nofollow = 0;
   const brokenExamples = [];
+  const externalExamples = [];
 
   allLinks.forEach(link => {
     const href = link.getAttribute('href');
+    const rel = link.getAttribute('rel');
 
-    // Vérifier les liens vides ou cassés
-    if (!href || href === '#' || href === '' || href === 'javascript:void(0)') {
-      brokenLinks++;
-      if (brokenExamples.length < 3) {
-        brokenExamples.push(link.textContent.trim().substring(0, 30) || 'Sans texte');
+    // Liens cassés / vides
+    if (!href || href === '#' || href === '' || href === 'javascript:void(0)' || href === 'javascript:;') {
+      broken++;
+      if (brokenExamples.length < 5) {
+        brokenExamples.push({
+          text: link.textContent.trim().substring(0, 40) || '[Sans texte]',
+          href: href || '[Vide]'
+        });
       }
+    }
+
+    // Liens externes vs internes
+    if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+      const currentDomain = window.location.hostname;
+      const linkDomain = new URL(href).hostname;
+
+      if (linkDomain !== currentDomain) {
+        external++;
+        if (externalExamples.length < 3) {
+          externalExamples.push({ domain: linkDomain, href: href });
+        }
+      } else {
+        internal++;
+      }
+    } else if (href && (href.startsWith('/') || href.startsWith('./'))) {
+      internal++;
+    }
+
+    // Liens nofollow
+    if (rel && rel.includes('nofollow')) {
+      nofollow++;
     }
   });
 
+  let recommendation = '';
+  if (allLinks.length === 0) {
+    recommendation = 'Aucun lien détecté. Ajoutez des liens internes pour améliorer la navigation et le SEO.';
+  } else if (broken > 0) {
+    const percentage = Math.round((broken / allLinks.length) * 100);
+    recommendation = `⚠️ ${broken} lien(s) cassé(s) ou vide(s) (${percentage}%) sur ${allLinks.length} au total. Corrigez-les immédiatement pour l'UX et le SEO.`;
+  } else {
+    recommendation = `${allLinks.length} liens au total (${internal} internes, ${external} externes). Aucun lien cassé détecté. Excellent !`;
+  }
+
   return {
     total: allLinks.length,
-    broken: brokenLinks,
-    brokenExamples: brokenExamples
+    broken: broken,
+    brokenExamples: brokenExamples,
+    internal: internal,
+    external: external,
+    externalExamples: externalExamples,
+    nofollow: nofollow,
+    recommendation: recommendation
+  };
+}
+
+/**
+ * Analyse l'accessibilité de base
+ */
+function analyzeAccessibility() {
+  const issues = [];
+  let score = 0;
+
+  // 1. Attribut lang sur <html>
+  const htmlLang = document.documentElement.getAttribute('lang');
+  if (!htmlLang) {
+    issues.push('Attribut "lang" manquant sur <html> (important pour les lecteurs d\'écran).');
+  } else {
+    score += 20;
+  }
+
+  // 2. Labels pour les inputs
+  const inputs = document.querySelectorAll('input, textarea, select');
+  let inputsWithoutLabel = 0;
+  inputs.forEach(input => {
+    const id = input.getAttribute('id');
+    const ariaLabel = input.getAttribute('aria-label');
+    const ariaLabelledby = input.getAttribute('aria-labelledby');
+    const hasLabel = id && document.querySelector(`label[for="${id}"]`);
+
+    if (!hasLabel && !ariaLabel && !ariaLabelledby && input.type !== 'hidden') {
+      inputsWithoutLabel++;
+    }
+  });
+
+  if (inputsWithoutLabel > 0) {
+    issues.push(`${inputsWithoutLabel} champ(s) de formulaire sans label (barrière d'accessibilité).`);
+  } else if (inputs.length > 0) {
+    score += 20;
+  }
+
+  // 3. Contraste (détection basique via styles inline)
+  // Note: Une vraie analyse de contraste nécessiterait des calculs complexes
+  score += 20; // On donne le bénéfice du doute
+
+  // 4. Balises ARIA
+  const ariaElements = document.querySelectorAll('[role], [aria-label], [aria-labelledby]');
+  if (ariaElements.length > 5) {
+    score += 20;
+  } else if (ariaElements.length > 0) {
+    score += 10;
+  }
+
+  // 5. Boutons accessibles
+  const buttons = document.querySelectorAll('button, [role="button"]');
+  let buttonsWithoutText = 0;
+  buttons.forEach(btn => {
+    const text = btn.textContent.trim();
+    const ariaLabel = btn.getAttribute('aria-label');
+    if (!text && !ariaLabel) {
+      buttonsWithoutText++;
+    }
+  });
+
+  if (buttonsWithoutText > 0) {
+    issues.push(`${buttonsWithoutText} bouton(s) sans texte ni aria-label (inaccessible).`);
+  } else if (buttons.length > 0) {
+    score += 20;
+  }
+
+  let recommendation = '';
+  if (issues.length === 0) {
+    recommendation = 'Bonne accessibilité de base détectée. Continuez à respecter les standards WCAG.';
+  } else {
+    recommendation = `${issues.length} problème(s) d'accessibilité détecté(s): ${issues.join(' ')}`;
+  }
+
+  return {
+    score: Math.min(score, 100),
+    issues: issues,
+    recommendation: recommendation
+  };
+}
+
+/**
+ * Analyse de performance basique
+ */
+function analyzeBasicPerformance() {
+  const images = document.querySelectorAll('img');
+  const scripts = document.querySelectorAll('script');
+  const stylesheets = document.querySelectorAll('link[rel="stylesheet"]');
+
+  // Détection lazy loading
+  const lazyImages = Array.from(images).filter(img => img.loading === 'lazy');
+  const lazyPercentage = images.length > 0 ? Math.round((lazyImages.length / images.length) * 100) : 0;
+
+  // Taille estimée (très basique)
+  const totalResources = images.length + scripts.length + stylesheets.length;
+
+  let recommendation = '';
+  if (lazyPercentage === 0 && images.length > 5) {
+    recommendation = `${images.length} images sans lazy loading. Ajoutez loading="lazy" pour améliorer les performances.`;
+  } else if (lazyPercentage > 0) {
+    recommendation = `${lazyPercentage}% des images utilisent le lazy loading. Excellent pour les performances !`;
+  } else {
+    recommendation = `${totalResources} ressources chargées (${images.length} images, ${scripts.length} scripts, ${stylesheets.length} CSS).`;
+  }
+
+  return {
+    images: images.length,
+    scripts: scripts.length,
+    stylesheets: stylesheets.length,
+    lazyImages: lazyImages.length,
+    lazyPercentage: lazyPercentage,
+    recommendation: recommendation
+  };
+}
+
+/**
+ * Analyse la sémantique HTML5
+ */
+function analyzeSemantics() {
+  const semanticTags = {
+    header: document.querySelectorAll('header').length,
+    nav: document.querySelectorAll('nav').length,
+    main: document.querySelectorAll('main').length,
+    article: document.querySelectorAll('article').length,
+    section: document.querySelectorAll('section').length,
+    aside: document.querySelectorAll('aside').length,
+    footer: document.querySelectorAll('footer').length
+  };
+
+  const totalSemantic = Object.values(semanticTags).reduce((sum, val) => sum + val, 0);
+  const usedTags = Object.keys(semanticTags).filter(tag => semanticTags[tag] > 0);
+
+  let recommendation = '';
+  if (totalSemantic === 0) {
+    recommendation = 'Aucune balise HTML5 sémantique détectée. Utilisez <header>, <nav>, <main>, <article>, <footer> pour améliorer l\'accessibilité et le SEO.';
+  } else if (totalSemantic < 3) {
+    recommendation = `Peu de balises sémantiques (${usedTags.join(', ')}). Enrichissez votre structure HTML5.`;
+  } else {
+    recommendation = `Bonne structure sémantique (${totalSemantic} balises: ${usedTags.join(', ')}). Excellent pour l'accessibilité et le SEO !`;
+  }
+
+  return {
+    tags: semanticTags,
+    total: totalSemantic,
+    usedTags: usedTags,
+    recommendation: recommendation
   };
 }
 
 /**
  * Calcule le score UX sur 100
- * @param {Object} ux - Données UX
- * @returns {number} Score sur 100
  */
 function calculateUXScore(ux) {
   let score = 0;
 
-  // Viewport mobile (25 points)
-  if (ux.viewport.exists) score += 25;
+  // Viewport (20 points)
+  if (ux.viewport.exists) score += 20;
 
-  // Nombre de mots (25 points)
-  if (ux.wordCount >= 300) score += 25;
-  else if (ux.wordCount >= 150) score += 15;
-  else if (ux.wordCount >= 50) score += 10;
+  // Contenu (20 points)
+  if (ux.wordCount >= 500) score += 20;
+  else if (ux.wordCount >= 300) score += 15;
+  else if (ux.wordCount >= 100) score += 10;
+  else if (ux.wordCount >= 50) score += 5;
 
-  // Temps de lecture raisonnable (10 points bonus)
-  if (ux.readingTime >= 2 && ux.readingTime <= 15) score += 10;
-
-  // Liens (40 points)
+  // Liens (20 points)
   if (ux.links.total > 0) {
-    score += 20; // Avoir des liens
-
-    // Pénalité pour liens cassés
+    score += 10;
     const brokenPercentage = (ux.links.broken / ux.links.total) * 100;
-    if (brokenPercentage === 0) score += 20;
-    else if (brokenPercentage <= 5) score += 15;
-    else if (brokenPercentage <= 10) score += 10;
-    else if (brokenPercentage <= 20) score += 5;
+    if (brokenPercentage === 0) score += 10;
+    else if (brokenPercentage <= 5) score += 7;
+    else if (brokenPercentage <= 10) score += 5;
+    else if (brokenPercentage <= 20) score += 2;
   }
+
+  // Accessibilité (20 points)
+  score += Math.round(ux.accessibility.score * 0.2);
+
+  // Performance (10 points)
+  if (ux.performance.lazyPercentage >= 50) score += 10;
+  else if (ux.performance.lazyPercentage >= 25) score += 5;
+
+  // Sémantique (10 points)
+  if (ux.semantics.total >= 5) score += 10;
+  else if (ux.semantics.total >= 3) score += 7;
+  else if (ux.semantics.total >= 1) score += 3;
 
   return Math.min(score, 100);
 }
 
-console.log('✅ Content script chargé et prêt à analyser');
+/* ========================================
+   GÉNÉRATION DES RECOMMANDATIONS
+   ======================================== */
+
+/**
+ * Génère les recommandations prioritaires basées sur l'analyse
+ */
+function generateRecommendations(results) {
+  const recommendations = [];
+
+  // Recommandations SEO critiques
+  if (!results.seo.title.exists) {
+    recommendations.push({
+      priority: 'Critique',
+      category: 'SEO',
+      title: 'Balise Title manquante',
+      description: 'Ajoutez immédiatement une balise <title> unique et descriptive (50-60 caractères).',
+      impact: 'Le titre est le facteur SEO le plus important et apparaît dans les résultats Google.',
+      action: 'Ajoutez <title>Votre Titre Optimisé | Nom du Site</title> dans le <head>.'
+    });
+  } else if (!results.seo.title.isOptimal) {
+    recommendations.push({
+      priority: 'Important',
+      category: 'SEO',
+      title: 'Titre non optimal',
+      description: results.seo.title.recommendation,
+      impact: 'Un titre optimisé améliore votre CTR dans les résultats de recherche.',
+      action: 'Ajustez votre titre entre 50-60 caractères avec vos mots-clés principaux.'
+    });
+  }
+
+  if (!results.seo.metaDescription.exists) {
+    recommendations.push({
+      priority: 'Important',
+      category: 'SEO',
+      title: 'Meta Description manquante',
+      description: 'Ajoutez une meta description convaincante de 140-160 caractères.',
+      impact: 'Influence directement votre taux de clic (CTR) dans les résultats Google.',
+      action: 'Ajoutez <meta name="description" content="Votre description optimisée...">'
+    });
+  }
+
+  if (!results.seo.h1.isUnique) {
+    recommendations.push({
+      priority: results.seo.h1.count === 0 ? 'Critique' : 'Important',
+      category: 'SEO',
+      title: results.seo.h1.count === 0 ? 'H1 manquant' : 'Plusieurs H1 détectés',
+      description: results.seo.h1.recommendation,
+      impact: 'Le H1 structure votre contenu et renforce votre mot-clé principal.',
+      action: 'Gardez un seul H1 unique et descriptif par page.'
+    });
+  }
+
+  if (results.seo.images.withoutAlt > 0) {
+    recommendations.push({
+      priority: 'Moyen',
+      category: 'SEO & Accessibilité',
+      title: `${results.seo.images.withoutAlt} image(s) sans attribut ALT`,
+      description: results.seo.images.recommendation,
+      impact: 'Améliore le référencement image et l\'accessibilité pour les malvoyants.',
+      action: 'Ajoutez alt="description précise" sur chaque image.'
+    });
+  }
+
+  if (!results.seo.openGraph.complete) {
+    recommendations.push({
+      priority: 'Moyen',
+      category: 'Marketing',
+      title: 'Open Graph incomplet',
+      description: results.seo.openGraph.recommendation,
+      impact: 'Contrôle l\'apparence de vos partages sur Facebook, LinkedIn, Twitter.',
+      action: 'Ajoutez og:title, og:description, og:image et og:url dans le <head>.'
+    });
+  }
+
+  // Recommandations Marketing
+  if (!results.marketing.ga4.detected) {
+    recommendations.push({
+      priority: 'Important',
+      category: 'Marketing',
+      title: 'Google Analytics 4 non détecté',
+      description: results.marketing.ga4.recommendation,
+      impact: 'Impossible de mesurer votre trafic et comprendre vos visiteurs.',
+      action: 'Installez GA4 via Google Tag Manager ou en direct avec gtag.js.'
+    });
+  }
+
+  if (!results.marketing.gtm.detected) {
+    recommendations.push({
+      priority: 'Moyen',
+      category: 'Marketing',
+      title: 'Google Tag Manager non installé',
+      description: results.marketing.gtm.recommendation,
+      impact: 'Simplifiez la gestion de tous vos pixels marketing sans toucher au code.',
+      action: 'Créez un compte GTM et installez le conteneur sur votre site.'
+    });
+  }
+
+  if (results.marketing.cta.count < 2) {
+    recommendations.push({
+      priority: 'Important',
+      category: 'Conversion',
+      title: results.marketing.cta.count === 0 ? 'Aucun CTA détecté' : 'Pas assez de CTA',
+      description: results.marketing.cta.recommendation,
+      impact: 'Les CTA sont essentiels pour convertir vos visiteurs en leads ou clients.',
+      action: 'Ajoutez au moins 2-3 CTA clairs et visibles (contact, devis, essai, téléchargement).'
+    });
+  }
+
+  if (results.marketing.forms.count === 0) {
+    recommendations.push({
+      priority: 'Important',
+      category: 'Conversion',
+      title: 'Aucun formulaire de conversion',
+      description: results.marketing.forms.recommendation,
+      impact: 'Sans formulaire, impossible de capturer des leads.',
+      action: 'Ajoutez un formulaire de contact, devis ou inscription newsletter.'
+    });
+  }
+
+  // Recommandations UX
+  if (!results.ux.viewport.exists) {
+    recommendations.push({
+      priority: 'Critique',
+      category: 'UX & Mobile',
+      title: 'Viewport mobile manquant',
+      description: results.ux.viewport.recommendation,
+      impact: 'Votre site ne sera pas responsive sur mobile (plus de 60% du trafic web).',
+      action: 'Ajoutez <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    });
+  }
+
+  if (results.ux.links.broken > 0) {
+    recommendations.push({
+      priority: 'Important',
+      category: 'UX & SEO',
+      title: `${results.ux.links.broken} lien(s) cassé(s)`,
+      description: results.ux.links.recommendation,
+      impact: 'Les liens cassés nuisent à l\'expérience utilisateur et au SEO.',
+      action: 'Corrigez ou supprimez tous les liens vides ou pointant vers "#".'
+    });
+  }
+
+  if (results.ux.wordCount < 300) {
+    recommendations.push({
+      priority: 'Moyen',
+      category: 'SEO & Contenu',
+      title: 'Contenu insuffisant',
+      description: results.ux.wordRecommendation,
+      impact: 'Google favorise les pages avec du contenu riche et utile (300+ mots minimum).',
+      action: 'Enrichissez votre contenu avec des informations pertinentes pour vos visiteurs.'
+    });
+  }
+
+  if (results.ux.accessibility.issues.length > 0) {
+    recommendations.push({
+      priority: 'Moyen',
+      category: 'Accessibilité',
+      title: `${results.ux.accessibility.issues.length} problème(s) d'accessibilité`,
+      description: results.ux.accessibility.recommendation,
+      impact: 'L\'accessibilité améliore l\'UX pour tous et est une obligation légale dans certains cas.',
+      action: 'Corrigez les problèmes identifiés (labels, lang, aria).'
+    });
+  }
+
+  // Trier par priorité (Critique > Important > Moyen)
+  const priorityOrder = { 'Critique': 0, 'Important': 1, 'Moyen': 2 };
+  recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  return recommendations.slice(0, 10); // Top 10 recommandations
+}
+
+console.log('✅ Content script professionnel chargé et prêt à analyser');
