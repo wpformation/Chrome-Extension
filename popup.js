@@ -39,7 +39,7 @@ async function startAnalysis(forceRefresh = false) {
 
     chrome.tabs.sendMessage(
       tab.id,
-      { action: 'analyzePage', forceRefresh: forceRefresh },
+      { action: 'analyzePage', forceRefresh: forceRefresh, useAI: true },
       (response) => {
         if (chrome.runtime.lastError) {
           console.error('Erreur:', chrome.runtime.lastError);
@@ -48,6 +48,13 @@ async function startAnalysis(forceRefresh = false) {
         }
 
         if (response) {
+          // Vérifier s'il y a une erreur dans la réponse
+          if (response.error) {
+            console.error('Erreur d\'analyse:', response.error);
+            showError(`Erreur: ${response.error}`);
+            return;
+          }
+
           currentResults = response;
           displayResults(response);
 
@@ -95,6 +102,9 @@ function displayResults(data) {
 
   // Score global
   displayGlobalScore(data.globalScore);
+
+  // Analyse globale IA (si disponible)
+  displayGlobalAnalysis(data);
 
   // Recommandations prioritaires
   displayRecommendations(data.recommendations);
@@ -172,6 +182,48 @@ function animateValue(element, start, end, duration) {
     }
     element.textContent = Math.round(current);
   }, 16);
+}
+
+/* ========================================
+   ANALYSE GLOBALE IA
+   ======================================== */
+
+function displayGlobalAnalysis(data) {
+  const globalAnalysisSection = document.getElementById('globalAnalysis');
+  const analysisMethodBadge = document.getElementById('analysisMethodBadge');
+  const globalAnalysisContent = document.getElementById('globalAnalysisContent');
+
+  // Si l'analyse IA est disponible
+  if (data.globalAnalysis && data.analysisMethod) {
+    // Afficher le badge de méthode d'analyse
+    const isAI = data.analysisMethod.includes('AI');
+    analysisMethodBadge.textContent = `${isAI ? '🤖' : '💻'} ${data.analysisMethod}`;
+
+    // Afficher le contenu de l'analyse globale
+    globalAnalysisContent.innerHTML = formatAnalysisText(data.globalAnalysis);
+
+    // Afficher la section
+    globalAnalysisSection.style.display = 'block';
+  } else {
+    // Cacher la section si pas d'analyse IA
+    globalAnalysisSection.style.display = 'none';
+  }
+}
+
+/**
+ * Formate le texte d'analyse en paragraphes HTML
+ * @param {string} text - Texte pouvant contenir plusieurs paragraphes
+ * @returns {string} HTML formaté
+ */
+function formatAnalysisText(text) {
+  if (!text) return '';
+
+  // Si le texte contient déjà des balises <p>, le retourner tel quel
+  if (text.includes('<p>')) return text;
+
+  // Sinon, diviser par double saut de ligne et créer des paragraphes
+  const paragraphs = text.split('\n\n').filter(p => p.trim());
+  return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
 }
 
 /* ========================================
@@ -294,6 +346,16 @@ function displaySEOResults(seo) {
     canonicalStatus.textContent = '⚠ Absente';
     canonicalStatus.className = 'metric-value warning';
   }
+
+  // Analyse IA SEO (si disponible)
+  const seoAnalysisSection = document.getElementById('seoAnalysis');
+  const seoAnalysisContent = document.getElementById('seoAnalysisContent');
+  if (seo.analysis) {
+    seoAnalysisContent.innerHTML = formatAnalysisText(seo.analysis);
+    seoAnalysisSection.style.display = 'block';
+  } else {
+    seoAnalysisSection.style.display = 'none';
+  }
 }
 
 /* ========================================
@@ -369,6 +431,16 @@ function displayMarketingResults(marketing) {
     socialStatus.textContent = '✗ Aucun lien';
     socialStatus.className = 'metric-value error';
   }
+
+  // Analyse IA Marketing (si disponible)
+  const marketingAnalysisSection = document.getElementById('marketingAnalysis');
+  const marketingAnalysisContent = document.getElementById('marketingAnalysisContent');
+  if (marketing.analysis) {
+    marketingAnalysisContent.innerHTML = formatAnalysisText(marketing.analysis);
+    marketingAnalysisSection.style.display = 'block';
+  } else {
+    marketingAnalysisSection.style.display = 'none';
+  }
 }
 
 /* ========================================
@@ -425,6 +497,16 @@ function displayUXResults(ux) {
     const percentage = Math.round((ux.links.broken / ux.links.total) * 100);
     brokenLinksStatus.textContent = `⚠ ${ux.links.broken} lien(s) cassé(s) (${percentage}%)`;
     brokenLinksStatus.className = 'metric-value warning';
+  }
+
+  // Analyse IA UX (si disponible)
+  const uxAnalysisSection = document.getElementById('uxAnalysis');
+  const uxAnalysisContent = document.getElementById('uxAnalysisContent');
+  if (ux.analysis) {
+    uxAnalysisContent.innerHTML = formatAnalysisText(ux.analysis);
+    uxAnalysisSection.style.display = 'block';
+  } else {
+    uxAnalysisSection.style.display = 'none';
   }
 }
 
