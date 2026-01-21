@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Expert - Analyseur de Page Web</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header / En-tête de l'extension -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="header-title">
+                <svg class="header-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                </svg>
+                Audit Expert
+            </h1>
+            <p class="header-subtitle">Analyse SEO, Marketing & UX</p>
+        </div>
+    </header>
+
+    <!-- Container principal -->
+    <div class="container">
+
+        <!-- Section d'action -->
+        <div class="action-section">
+            <button id="analyzeBtn" class="btn btn-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                <span>Lancer l'Analyse</span>
+            </button>
+
+            <button id="exportPdfBtn" class="btn btn-secondary" style="display: none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Exporter en PDF</span>
+            </button>
+        </div>
+
+        <!-- Loader / Indicateur de chargement -->
+        <div id="loader" class="loader" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyse en cours...</p>
+        </div>
+
+        <!-- Score global -->
+        <div id="globalScore" class="global-score" style="display: none;">
+            <div class="score-circle">
+                <svg width="120" height="120">
+                    <circle cx="60" cy="60" r="54" fill="none" stroke="#e2e8f0" stroke-width="8"></circle>
+                    <circle id="scoreCircle" cx="60" cy="60" r="54" fill="none" stroke-width="8"
+                            stroke-dasharray="339.292" stroke-dashoffset="339.292"
+                            transform="rotate(-90 60 60)" class="score-progress"></circle>
+                </svg>
+                <div class="score-text">
+                    <span id="scoreValue" class="score-value">0</span>
+                    <span class="score-label">/100</span>
+                </div>
+            </div>
+            <h2 class="score-title">Score Global</h2>
+            <p id="scoreStatus" class="score-status"></p>
+        </div>
+
+        <!-- Résultats par pilier -->
+        <div id="results" class="results" style="display: none;">
+
+            <!-- Pilier 1: SEO -->
+            <div class="card pillar-card">
+                <div class="card-header">
+                    <div class="pillar-header">
+                        <svg class="pillar-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="M21 21l-4.35-4.35"></path>
+                        </svg>
+                        <h3>Analyse SEO</h3>
+                    </div>
+                    <div id="seoScore" class="pillar-score">0/100</div>
+                </div>
+                <div class="card-body">
+                    <div class="metric">
+                        <span class="metric-label">Titre de la page</span>
+                        <span id="titleStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Meta Description</span>
+                        <span id="descStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Balise H1</span>
+                        <span id="h1Status" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Hiérarchie des titres</span>
+                        <span id="headingsStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Images sans ALT</span>
+                        <span id="imagesStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Balise Canonical</span>
+                        <span id="canonicalStatus" class="metric-value"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pilier 2: Marketing -->
+            <div class="card pillar-card">
+                <div class="card-header">
+                    <div class="pillar-header">
+                        <svg class="pillar-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18"></path>
+                            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"></path>
+                        </svg>
+                        <h3>Analyse Marketing</h3>
+                    </div>
+                    <div id="marketingScore" class="pillar-score">0/100</div>
+                </div>
+                <div class="card-body">
+                    <div class="metric">
+                        <span class="metric-label">Google Analytics (GA4)</span>
+                        <span id="ga4Status" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Google Tag Manager</span>
+                        <span id="gtmStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Meta Pixel (Facebook)</span>
+                        <span id="metaPixelStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">HubSpot</span>
+                        <span id="hubspotStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">CTA détectés</span>
+                        <span id="ctaStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Réseaux sociaux</span>
+                        <span id="socialStatus" class="metric-value"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pilier 3: UX & Technique -->
+            <div class="card pillar-card">
+                <div class="card-header">
+                    <div class="pillar-header">
+                        <svg class="pillar-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                        <h3>Analyse UX & Technique</h3>
+                    </div>
+                    <div id="uxScore" class="pillar-score">0/100</div>
+                </div>
+                <div class="card-body">
+                    <div class="metric">
+                        <span class="metric-label">Viewport Mobile</span>
+                        <span id="viewportStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Nombre de mots</span>
+                        <span id="wordCountStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Temps de lecture estimé</span>
+                        <span id="readingTimeStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total de liens</span>
+                        <span id="linksStatus" class="metric-value"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Liens cassés/vides</span>
+                        <span id="brokenLinksStatus" class="metric-value"></span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- URL analysée -->
+        <div id="analyzedUrl" class="analyzed-url" style="display: none;">
+            <span class="url-label">URL analysée:</span>
+            <span id="currentUrl" class="url-text"></span>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="popup.js"></script>
+    <script src="pdf-export.js"></script>
+</body>
+</html>
