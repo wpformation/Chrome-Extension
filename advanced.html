@@ -28,6 +28,34 @@
             font-size: 28px;
         }
 
+        .analysis-meta {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .meta-badge.ai-mode {
+            background: rgba(34, 197, 94, 0.3);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .meta-badge.code-mode {
+            background: rgba(251, 191, 36, 0.3);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+        }
+
         .back-button {
             display: inline-block;
             padding: 8px 16px;
@@ -165,6 +193,22 @@
     <div class="advanced-header">
         <h1>📊 Analyses Avancées SEO & Marketing</h1>
         <p>Audit approfondi de votre site web</p>
+
+        <div class="analysis-meta">
+            <span id="analysisMethodBadge" class="meta-badge">
+                <span id="methodIcon">💻</span>
+                <span id="methodText">Chargement...</span>
+            </span>
+            <span id="timestampBadge" class="meta-badge">
+                <span>🕐</span>
+                <span id="timestampText">-</span>
+            </span>
+            <span id="cacheBadge" class="meta-badge" style="display: none;">
+                <span>📦</span>
+                <span>Depuis le cache</span>
+            </span>
+        </div>
+
         <button class="back-button" onclick="window.close()">← Retour au rapport principal</button>
     </div>
 
