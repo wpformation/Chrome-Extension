@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * @returns {Object} Résultats complets de l'audit avec recommandations
  */
 function performCompleteAudit() {
-  console.log('🚀 Démarrage de l\'analyse professionnelle...');
+  console.log('🚀 Démarrage de l\'analyse professionnelle ultra-complète...');
 
   const results = {
     url: window.location.href,
@@ -26,6 +26,13 @@ function performCompleteAudit() {
     seo: analyzeSEO(),
     marketing: analyzeMarketing(),
     ux: analyzeUX(),
+
+    // NOUVELLES ANALYSES TECHNIQUES
+    cms: detectCMS(),
+    cache: detectCache(),
+    technologies: detectTechnologies(),
+    coreWebVitals: measureCoreWebVitals(),
+
     recommendations: [] // Recommandations prioritaires
   };
 
@@ -42,7 +49,7 @@ function performCompleteAudit() {
   // Génération des recommandations prioritaires
   results.recommendations = generateRecommendations(results);
 
-  console.log('✅ Analyse terminée:', results);
+  console.log('✅ Analyse ultra-complète terminée:', results);
   return results;
 }
 
@@ -671,42 +678,71 @@ function detectDrift() {
 }
 
 /**
- * Détection améliorée des CTA (Call-to-Action)
+ * Détection ULTRA-INTELLIGENTE des CTA (Call-to-Action)
+ * Détecte TOUS les boutons visuels, pas seulement les mots-clés
  */
 function detectCTA() {
-  const ctaKeywords = [
-    // Français
-    'acheter', 'commander', 'contact', 'contacter', 'devis',
-    'télécharger', 'télécharge', 'essai gratuit', 'essayer', 'inscription',
-    'inscrire', 's\'inscrire', 'démarrer', 'commencer', 'réserver',
-    'prendre rendez-vous', 'obtenir', 'demander', 'découvrir',
-    // Anglais
-    'buy', 'order', 'contact', 'quote', 'download',
-    'trial', 'try', 'sign up', 'subscribe', 'start',
-    'begin', 'book', 'get started', 'get', 'request', 'discover'
-  ];
-
-  const buttons = document.querySelectorAll('button, a.btn, a.button, input[type="submit"], [role="button"]');
   const ctaSet = new Set();
   const examples = [];
 
-  buttons.forEach(btn => {
-    const text = (btn.textContent || btn.value || '').toLowerCase().trim();
+  // 1. Tous les boutons HTML natifs
+  const nativeButtons = document.querySelectorAll('button, input[type="submit"], input[type="button"]');
 
-    // Ignorer les boutons vides ou très longs (probablement pas des CTA)
-    if (text.length === 0 || text.length > 50) return;
+  // 2. Tous les liens avec classes bouton (très large)
+  const buttonClasses = document.querySelectorAll(`
+    a[class*="button"], a[class*="btn"], a[class*="cta"],
+    [class*="wp-block-button"], [class*="ast-button"],
+    [class*="elementor-button"], [class*="uagb-button"],
+    [role="button"]
+  `);
 
-    // Vérifier si le texte contient un mot-clé CTA
-    const isCTA = ctaKeywords.some(keyword => {
-      // Correspondance exacte ou au début d'un mot
-      return text === keyword || text.startsWith(keyword + ' ') || text.includes(' ' + keyword);
-    });
+  // 3. Détection visuelle: liens qui ressemblent à des boutons
+  const allLinks = document.querySelectorAll('a');
+  const visualButtons = [];
 
-    if (isCTA) {
-      ctaSet.add(text);
-      if (examples.length < 5) {
-        examples.push(text.substring(0, 40));
+  allLinks.forEach(link => {
+    try {
+      const styles = window.getComputedStyle(link);
+      const bgColor = styles.backgroundColor;
+      const padding = styles.padding;
+      const borderRadius = styles.borderRadius;
+      const display = styles.display;
+
+      // Si le lien a un background coloré + padding + border-radius = bouton visuel
+      const hasBackground = bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent';
+      const hasPadding = padding && padding !== '0px';
+      const hasRoundedCorners = borderRadius && borderRadius !== '0px';
+      const isInlineBlock = display === 'inline-block' || display === 'block' || display === 'flex';
+
+      if (hasBackground && hasPadding && (hasRoundedCorners || isInlineBlock)) {
+        visualButtons.push(link);
       }
+    } catch (e) {
+      // Ignore les erreurs de computed style
+    }
+  });
+
+  // Combiner toutes les détections
+  const allCTAs = [
+    ...Array.from(nativeButtons),
+    ...Array.from(buttonClasses),
+    ...visualButtons
+  ];
+
+  // Dédupliquer et extraire les textes
+  allCTAs.forEach(cta => {
+    const text = (cta.textContent || cta.value || '').trim();
+
+    // Ignorer les boutons vides ou très longs (> 100 car) ou les menus
+    if (text.length === 0 || text.length > 100) return;
+
+    // Ignorer les boutons de navigation pure (Précédent/Suivant/etc)
+    const navWords = ['précédent', 'suivant', 'previous', 'next', 'fermer', 'close', 'menu'];
+    if (navWords.some(word => text.toLowerCase() === word)) return;
+
+    ctaSet.add(text);
+    if (examples.length < 8) {
+      examples.push(text.substring(0, 50));
     }
   });
 
@@ -716,7 +752,7 @@ function detectCTA() {
   if (count === 0) {
     recommendation = 'Aucun CTA détecté ! Ajoutez des boutons d\'action clairs (contact, devis, téléchargement, essai, etc.) pour convertir vos visiteurs.';
   } else if (count < 2) {
-    recommendation = `Seulement ${count} CTA détecté. Ajoutez plus de points de conversion stratégiques sur votre page.`;
+    recommendation = `Seulement ${count} CTA détecté. Ajoutez plus de points de conversion stratégiques sur votre page.';
   } else if (count < 4) {
     recommendation = `${count} CTA détectés. Bien ! Testez différents emplacements et formulations pour optimiser votre taux de conversion.`;
   } else {
@@ -926,7 +962,45 @@ function countWords() {
 }
 
 /**
- * Analyse avancée des liens
+ * Détermine si un lien # est un menu/dropdown légitime
+ */
+function isLegitimateMenuLink(link) {
+  // 1. Vérifier si le lien est dans un élément nav ou menu
+  const inNav = link.closest('nav, [role="navigation"], .menu, .nav, header');
+  if (inNav) return true;
+
+  // 2. Vérifier les classes du lien lui-même
+  const className = link.className || '';
+  const menuClasses = ['menu', 'nav', 'dropdown', 'submenu', 'toggle', 'expand'];
+  if (menuClasses.some(cls => className.toLowerCase().includes(cls))) {
+    return true;
+  }
+
+  // 3. Vérifier si le lien a des attributs ARIA pour les menus
+  const ariaHaspopup = link.getAttribute('aria-haspopup');
+  const ariaExpanded = link.getAttribute('aria-expanded');
+  const ariaControls = link.getAttribute('aria-controls');
+  if (ariaHaspopup || ariaExpanded !== null || ariaControls) {
+    return true;
+  }
+
+  // 4. Vérifier si le lien a des événements onclick (probable comportement JS)
+  const hasOnclick = link.hasAttribute('onclick') || link.onclick;
+  if (hasOnclick) return true;
+
+  // 5. Vérifier si le parent a une classe de menu
+  const parent = link.parentElement;
+  const parentClass = parent ? (parent.className || '') : '';
+  if (menuClasses.some(cls => parentClass.toLowerCase().includes(cls))) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Analyse avancée des liens INTELLIGENTE
+ * Exclut les liens de menu/dropdown valides
  */
 function analyzeLinksAdvanced() {
   const allLinks = document.querySelectorAll('a[href]');
@@ -941,13 +1015,25 @@ function analyzeLinksAdvanced() {
     const href = link.getAttribute('href');
     const rel = link.getAttribute('rel');
 
-    // Liens cassés / vides
-    if (!href || href === '#' || href === '' || href === 'javascript:void(0)' || href === 'javascript:;') {
+    // Vérifier si c'est un lien de menu/dropdown (usage légitime de #)
+    const isMenuLink = isLegitimateMenuLink(link);
+
+    // Liens cassés / vides (MAIS exclure les menus légitimes)
+    if (!href || href === '' || href === 'javascript:void(0)' || href === 'javascript:;') {
       broken++;
       if (brokenExamples.length < 5) {
         brokenExamples.push({
           text: link.textContent.trim().substring(0, 40) || '[Sans texte]',
           href: href || '[Vide]'
+        });
+      }
+    } else if (href === '#' && !isMenuLink) {
+      // Seulement signaler # si ce n'est PAS un menu légitime
+      broken++;
+      if (brokenExamples.length < 5) {
+        brokenExamples.push({
+          text: link.textContent.trim().substring(0, 40) || '[Sans texte]',
+          href: '#'
         });
       }
     }
@@ -1353,6 +1439,309 @@ function generateRecommendations(results) {
   recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
   return recommendations.slice(0, 10); // Top 10 recommandations
+}
+
+/* ========================================
+   DÉTECTIONS TECHNIQUES AVANCÉES
+   ======================================== */
+
+/**
+ * Détecte le CMS utilisé
+ */
+function detectCMS() {
+  const cms = {
+    name: 'Aucun',
+    detected: false,
+    version: '',
+    theme: '',
+    confidence: 0
+  };
+
+  // WordPress
+  const wpGenerator = document.querySelector('meta[name="generator"][content*="WordPress"]');
+  const wpContent = document.querySelector('link[href*="wp-content"]');
+  const wpIncludes = document.querySelector('script[src*="wp-includes"]');
+  const wpJson = document.querySelector('link[rel="https://api.w.org/"]');
+
+  if (wpGenerator || wpContent || wpIncludes || wpJson) {
+    cms.name = 'WordPress';
+    cms.detected = true;
+    cms.confidence = 95;
+
+    // Version
+    if (wpGenerator) {
+      const match = wpGenerator.getAttribute('content').match(/WordPress (\d+\.\d+\.?\d*)/);
+      if (match) cms.version = match[1];
+    }
+
+    // Thème
+    const themeLinks = document.querySelectorAll('link[href*="/themes/"]');
+    if (themeLinks.length > 0) {
+      const themeMatch = themeLinks[0].href.match(/\/themes\/([^\/]+)/);
+      if (themeMatch) cms.theme = themeMatch[1];
+    }
+  }
+
+  // Shopify
+  const shopifyScript = document.querySelector('script[src*="cdn.shopify.com"]');
+  const shopifyMeta = document.querySelector('meta[content*="Shopify"]');
+  if (shopifyScript || shopifyMeta) {
+    cms.name = 'Shopify';
+    cms.detected = true;
+    cms.confidence = 95;
+  }
+
+  // Wix
+  const wixScript = document.querySelector('script[src*="static.parastorage.com"]');
+  const wixMeta = document.querySelector('meta[name="generator"][content*="Wix"]');
+  if (wixScript || wixMeta) {
+    cms.name = 'Wix';
+    cms.detected = true;
+    cms.confidence = 95;
+  }
+
+  // Squarespace
+  const squarespaceMeta = document.querySelector('meta[name="generator"][content*="Squarespace"]');
+  if (squarespaceMeta) {
+    cms.name = 'Squarespace';
+    cms.detected = true;
+    cms.confidence = 95;
+  }
+
+  // Drupal
+  const drupalMeta = document.querySelector('meta[name="Generator"][content*="Drupal"]');
+  const drupalScript = document.querySelector('script[src*="/sites/all/"]');
+  if (drupalMeta || drupalScript) {
+    cms.name = 'Drupal';
+    cms.detected = true;
+    cms.confidence = 90;
+  }
+
+  // Joomla
+  const joomlaMeta = document.querySelector('meta[name="generator"][content*="Joomla"]');
+  const joomlaScript = document.querySelector('script[src*="/media/jui/"]');
+  if (joomlaMeta || joomlaScript) {
+    cms.name = 'Joomla';
+    cms.detected = true;
+    cms.confidence = 90;
+  }
+
+  // Magento
+  const magentoScript = document.querySelector('script[src*="static/_requirejs/"]');
+  const magentoMeta = document.querySelector('meta[name="generator"][content*="Magento"]');
+  if (magentoScript || magentoMeta) {
+    cms.name = 'Magento';
+    cms.detected = true;
+    cms.confidence = 90;
+  }
+
+  // PrestaShop
+  const prestaScript = document.querySelector('script[src*="/modules/"]');
+  const prestaMeta = document.querySelector('meta[name="generator"][content*="PrestaShop"]');
+  if (prestaMeta || (prestaScript && window.prestashop)) {
+    cms.name = 'PrestaShop';
+    cms.detected = true;
+    cms.confidence = 85;
+  }
+
+  return cms;
+}
+
+/**
+ * Détecte les systèmes de cache et CDN
+ */
+function detectCache() {
+  const cache = {
+    detected: [],
+    cdn: [],
+    details: {}
+  };
+
+  // Cloudflare
+  const cfRay = document.querySelector('meta[name="cf-ray"]') || performance.getEntriesByType('navigation')[0]?.serverTiming?.find(t => t.name === 'cfRequestDuration');
+  if (cfRay || (typeof window.cloudflare !== 'undefined')) {
+    cache.cdn.push('Cloudflare');
+    cache.details.cloudflare = 'CDN & WAF détecté';
+  }
+
+  // LiteSpeed Cache (WordPress)
+  if (document.documentElement.getAttribute('data-lscache-rand')) {
+    cache.detected.push('LiteSpeed Cache');
+    cache.details.litespeed = 'Cache serveur haute performance';
+  }
+
+  // WP Rocket
+  if (document.querySelector('script[src*="wp-rocket"]') || document.documentElement.getAttribute('data-wpr-lazyload')) {
+    cache.detected.push('WP Rocket');
+    cache.details.wprocket = 'Plugin de cache WordPress premium';
+  }
+
+  // W3 Total Cache
+  if (document.querySelector('link[href*="w3tc"]') || document.querySelector('[id*="w3tc"]')) {
+    cache.detected.push('W3 Total Cache');
+    cache.details.w3tc = 'Plugin de cache WordPress';
+  }
+
+  // WP Super Cache
+  if (document.querySelector('meta[name="generator"][content*="WP Super Cache"]')) {
+    cache.detected.push('WP Super Cache');
+    cache.details.wpsupercache = 'Plugin de cache WordPress';
+  }
+
+  // Fastly
+  const fastlyScript = document.querySelector('script[src*="fastly.com"]');
+  const fastlyHeader = performance.getEntriesByType('navigation')[0]?.serverTiming?.find(t => t.name.includes('fastly'));
+  if (fastlyScript || fastlyHeader) {
+    cache.cdn.push('Fastly');
+    cache.details.fastly = 'CDN edge cloud';
+  }
+
+  // Akamai
+  const akamaiScript = document.querySelector('script[src*="akamai"]');
+  if (akamaiScript) {
+    cache.cdn.push('Akamai');
+    cache.details.akamai = 'CDN entreprise';
+  }
+
+  // KeyCDN
+  if (document.querySelector('link[href*="keycdn.com"]') || document.querySelector('script[src*="keycdn.com"]')) {
+    cache.cdn.push('KeyCDN');
+  }
+
+  // Varnish (détection via headers si disponible)
+  const hasVarnish = document.querySelector('meta[http-equiv="x-varnish"]');
+  if (hasVarnish) {
+    cache.detected.push('Varnish');
+    cache.details.varnish = 'Reverse proxy cache';
+  }
+
+  return cache;
+}
+
+/**
+ * Détecte les technologies front-end
+ */
+function detectTechnologies() {
+  const tech = {
+    frameworks: [],
+    libraries: [],
+    analytics: [],
+    fonts: [],
+    optimization: []
+  };
+
+  // Frameworks JS
+  if (typeof React !== 'undefined' || document.querySelector('[data-reactroot], [data-reactid]')) {
+    tech.frameworks.push('React');
+  }
+  if (typeof Vue !== 'undefined' || document.querySelector('[data-v-]')) {
+    tech.frameworks.push('Vue.js');
+  }
+  if (typeof angular !== 'undefined' || document.querySelector('[ng-app], [ng-controller]')) {
+    tech.frameworks.push('Angular');
+  }
+  if (window.__NEXT_DATA__) {
+    tech.frameworks.push('Next.js');
+  }
+  if (window.___gatsby) {
+    tech.frameworks.push('Gatsby');
+  }
+
+  // Bibliothèques
+  if (typeof jQuery !== 'undefined' || typeof $ !== 'undefined') {
+    tech.libraries.push(`jQuery ${typeof jQuery !== 'undefined' ? jQuery.fn.jquery : ''}`);
+  }
+  if (typeof Swiper !== 'undefined') {
+    tech.libraries.push('Swiper');
+  }
+  if (typeof AOS !== 'undefined') {
+    tech.libraries.push('AOS (Animate On Scroll)');
+  }
+
+  // Google Fonts
+  if (document.querySelector('link[href*="fonts.googleapis.com"]')) {
+    tech.fonts.push('Google Fonts');
+  }
+
+  // Font Awesome
+  if (document.querySelector('link[href*="font-awesome"]') || document.querySelector('i[class*="fa-"]')) {
+    tech.fonts.push('Font Awesome');
+  }
+
+  // Optimisation d'images
+  if (document.querySelector('img[src*="shortpixel"]') || document.querySelector('[data-spai]')) {
+    tech.optimization.push('ShortPixel');
+  }
+  if (document.querySelector('img[loading="lazy"]').length > 0) {
+    tech.optimization.push('Native Lazy Loading');
+  }
+  if (document.querySelector('picture source[type="image/webp"]')) {
+    tech.optimization.push('WebP');
+  }
+
+  return tech;
+}
+
+/**
+ * Mesure les Core Web Vitals via Performance API
+ */
+function measureCoreWebVitals() {
+  const vitals = {
+    lcp: null,
+    fid: null,
+    cls: null,
+    fcp: null,
+    ttfb: null,
+    available: false
+  };
+
+  try {
+    // LCP (Largest Contentful Paint)
+    const lcpObserver = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      const lastEntry = entries[entries.length - 1];
+      vitals.lcp = Math.round(lastEntry.renderTime || lastEntry.loadTime);
+    });
+    lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+
+    // FCP (First Contentful Paint) via PerformancePaintTiming
+    const paintEntries = performance.getEntriesByType('paint');
+    const fcpEntry = paintEntries.find(entry => entry.name === 'first-contentful-paint');
+    if (fcpEntry) {
+      vitals.fcp = Math.round(fcpEntry.startTime);
+    }
+
+    // CLS (Cumulative Layout Shift)
+    let clsValue = 0;
+    const clsObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) {
+          clsValue += entry.value;
+        }
+      }
+      vitals.cls = Math.round(clsValue * 1000) / 1000;
+    });
+    clsObserver.observe({ type: 'layout-shift', buffered: true });
+
+    // TTFB (Time to First Byte)
+    const navTiming = performance.getEntriesByType('navigation')[0];
+    if (navTiming) {
+      vitals.ttfb = Math.round(navTiming.responseStart - navTiming.requestStart);
+    }
+
+    vitals.available = true;
+
+    // Arrêter les observers après 3 secondes
+    setTimeout(() => {
+      lcpObserver.disconnect();
+      clsObserver.disconnect();
+    }, 3000);
+
+  } catch (e) {
+    console.log('Core Web Vitals non disponibles:', e);
+  }
+
+  return vitals;
 }
 
 console.log('✅ Content script professionnel chargé et prêt à analyser');
