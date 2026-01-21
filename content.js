@@ -752,7 +752,7 @@ function detectCTA() {
   if (count === 0) {
     recommendation = 'Aucun CTA détecté ! Ajoutez des boutons d\'action clairs (contact, devis, téléchargement, essai, etc.) pour convertir vos visiteurs.';
   } else if (count < 2) {
-    recommendation = `Seulement ${count} CTA détecté. Ajoutez plus de points de conversion stratégiques sur votre page.';
+    recommendation = `Seulement ${count} CTA détecté. Ajoutez plus de points de conversion stratégiques sur votre page.`;
   } else if (count < 4) {
     recommendation = `${count} CTA détectés. Bien ! Testez différents emplacements et formulations pour optimiser votre taux de conversion.`;
   } else {
