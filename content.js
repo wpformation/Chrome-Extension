@@ -2023,20 +2023,39 @@ function detectCache() {
     score: 0
   };
 
-  // Récupérer tout le HTML y compris commentaires (outerHTML au lieu de innerHTML)
+  // Récupérer tout le HTML y compris commentaires HTML
+  // Utiliser documentElement.outerHTML + head.innerHTML pour capturer TOUS les commentaires
   const htmlContent = document.documentElement.outerHTML;
+  const headContent = document.head ? document.head.innerHTML : '';
+  const bodyContent = document.body ? document.body.innerHTML : '';
+  const fullContent = htmlContent + headContent + bodyContent;
+
+  // Logs pour debug
+  console.log('🔍 Détection cache - Recherche dans le HTML complet');
 
   // === CACHE WORDPRESS ===
 
-  // LiteSpeed Cache - Détection ULTRA-ROBUSTE
-  const lsCache = document.documentElement.getAttribute('data-lscache-rand') ||
-                  htmlContent.includes('LiteSpeed Cache') ||
-                  htmlContent.includes('lscache') ||
-                  htmlContent.includes('Page optimized by LiteSpeed') ||
-                  htmlContent.includes('Page cached by LiteSpeed') ||
-                  htmlContent.includes('QUIC.cloud') ||
-                  document.querySelector('link[href*="lscache"]') ||
-                  document.querySelector('script[src*="lscache"]');
+  // LiteSpeed Cache - Détection ULTRA-ROBUSTE AMÉLIORÉE
+  const lsCacheAttr = document.documentElement.getAttribute('data-lscache-rand');
+  const lsCacheInHTML = fullContent.includes('LiteSpeed Cache') ||
+                        fullContent.includes('lscache') ||
+                        fullContent.includes('Page optimized by LiteSpeed') ||
+                        fullContent.includes('Page cached by LiteSpeed') ||
+                        fullContent.includes('QUIC.cloud');
+  const lsCacheDOM = document.querySelector('link[href*="lscache"]') ||
+                     document.querySelector('script[src*="lscache"]');
+
+  const lsCache = lsCacheAttr || lsCacheInHTML || lsCacheDOM;
+
+  if (lsCache) {
+    console.log('✅ LiteSpeed Cache DÉTECTÉ!', {
+      viaAttribute: !!lsCacheAttr,
+      viaHTML: !!lsCacheInHTML,
+      viaDOM: !!lsCacheDOM
+    });
+  } else {
+    console.log('⚠️ LiteSpeed Cache NON détecté');
+  }
   if (lsCache) {
     cache.detected.push('LiteSpeed Cache');
     cache.details.litespeed = 'Cache serveur haute performance + QUIC.cloud CDN';

@@ -191,9 +191,20 @@ function animateValue(element, start, end, duration) {
 function displayGlobalAnalysis(data) {
   const globalAnalysisSection = document.getElementById('globalAnalysis');
   const analysisMethodBadge = document.getElementById('analysisMethodBadge');
+  const analysisMethodBadgeTop = document.getElementById('analysisMethodBadgeTop');
   const globalAnalysisContent = document.getElementById('globalAnalysisContent');
 
-  // Si l'analyse IA est disponible
+  // TOUJOURS afficher le badge de méthode d'analyse en haut
+  if (data.analysisMethod) {
+    const isAI = data.analysisMethod.includes('AI');
+    const badgeText = `${isAI ? '🤖' : '💻'} ${data.analysisMethod}`;
+
+    analysisMethodBadgeTop.textContent = badgeText;
+    analysisMethodBadgeTop.className = `analysis-method-badge-top ${isAI ? 'ai-mode' : 'code-mode'}`;
+    analysisMethodBadgeTop.style.display = 'inline-block';
+  }
+
+  // Si l'analyse IA détaillée est disponible
   if (data.globalAnalysis && data.analysisMethod) {
     // Afficher le badge de méthode d'analyse
     const isAI = data.analysisMethod.includes('AI');
@@ -204,8 +215,18 @@ function displayGlobalAnalysis(data) {
 
     // Afficher la section
     globalAnalysisSection.style.display = 'block';
+  } else if (data.analysisMethod && !data.analysisMethod.includes('AI')) {
+    // Mode code: afficher un message pour inviter à configurer l'IA
+    analysisMethodBadge.textContent = '💻 Analyse Code';
+    globalAnalysisContent.innerHTML = `
+      <p style="text-align: center; padding: 20px; color: #64748b;">
+        <strong>💡 Obtenez une analyse IA détaillée</strong><br><br>
+        Configurez votre clé API Claude dans <strong>Settings ⚙️</strong> pour bénéficier d'une analyse approfondie par intelligence artificielle avec recommandations personnalisées.
+      </p>
+    `;
+    globalAnalysisSection.style.display = 'block';
   } else {
-    // Cacher la section si pas d'analyse IA
+    // Cacher la section si pas de données
     globalAnalysisSection.style.display = 'none';
   }
 }
