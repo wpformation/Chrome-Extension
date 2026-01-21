@@ -289,6 +289,16 @@ function displayGlobalAnalysis(data) {
     analysisMethodBadgeTop.style.display = 'inline-block';
   }
 
+  // Si une erreur IA existe, afficher un message d'alerte
+  if (data.aiError && apiKeyIndicator) {
+    apiKeyIndicator.innerHTML = `❌ <strong>Analyse IA échouée</strong> - ${data.aiError.message}`;
+    apiKeyIndicator.style.display = 'block';
+    apiKeyIndicator.style.background = '#fee2e2';
+    apiKeyIndicator.style.border = '2px solid #ef4444';
+    apiKeyIndicator.style.color = '#991b1b';
+    console.error('💥 ERREUR IA AFFICHÉE À L\'UTILISATEUR:', data.aiError);
+  }
+
   // Si l'analyse IA détaillée est disponible
   if (data.globalAnalysis && data.analysisMethod) {
     // Afficher le badge de méthode d'analyse
@@ -764,12 +774,17 @@ async function checkApiKeyStatus() {
         await chrome.storage.local.remove('apiKeyJustConfigured');
 
         // Afficher un message
-        apiKeyIndicator.innerHTML = '✅ <strong>Clé API configurée !</strong> Lancement de l\'analyse IA en cours...';
+        apiKeyIndicator.innerHTML = '✅ <strong>Clé API configurée !</strong> 🤖 Lancement automatique de l\'analyse IA...';
+        apiKeyIndicator.style.background = '#dbeafe';
+        apiKeyIndicator.style.border = '2px solid #3b82f6';
+        apiKeyIndicator.style.color = '#1e40af';
 
         // Lancer automatiquement l'analyse (forceRefresh = true)
+        console.log('⏰ Démarrage de l\'analyse automatique dans 1 seconde...');
         setTimeout(() => {
+          console.log('🚀 LANCEMENT DE L\'ANALYSE AUTOMATIQUE (forceRefresh=true, useAI=true)');
           startAnalysis(true);
-        }, 500);
+        }, 1000);
       }
     } else {
       // Pas de clé API - Mode Code uniquement
