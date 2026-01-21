@@ -287,6 +287,28 @@ body {
   font-weight: 600;
 }
 
+.analysis-method-badge-top {
+  text-align: center;
+  margin-top: 12px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--primary-700);
+  font-weight: 600;
+  display: inline-block;
+}
+
+.analysis-method-badge-top.ai-mode {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #15803d;
+}
+
+.analysis-method-badge-top.code-mode {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #a16207;
+}
+
 .analysis-title {
   font-size: 16px;
   font-weight: 700;
