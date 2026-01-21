@@ -209,6 +209,86 @@ function createReportHTML(results) {
             color: #6366f1;
         }
 
+        .recommendations-section {
+            margin-top: 40px;
+            page-break-before: auto;
+        }
+
+        .section-title {
+            font-size: 28px;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+
+        .section-intro {
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        .recommendation-card {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .rec-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .rec-priority {
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .rec-category {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .rec-title {
+            font-size: 18px;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .rec-description, .rec-impact p, .rec-action p, .rec-tips, .rec-best-practices p {
+            color: #475569;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .rec-impact, .rec-action, .rec-tips, .rec-best-practices, .rec-resources {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .rec-impact strong, .rec-action strong, .rec-tips strong, .rec-best-practices strong, .rec-resources strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #6366f1;
+        }
+
+        .rec-tips ul, .rec-resources ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .rec-tips li, .rec-resources li {
+            margin-bottom: 6px;
+            color: #334155;
+        }
+
         @media print {
             body {
                 background: white;
@@ -286,6 +366,9 @@ function createReportHTML(results) {
             </div>
         </div>
 
+        <!-- Recommandations Enrichies -->
+        ${generateRecommendationsHTML(results.recommendations)}
+
         <!-- Pied de page -->
         <div class="footer">
             <p>Rapport généré par <strong>Audit Expert</strong> - Extension Chrome professionnelle</p>
@@ -311,6 +394,109 @@ function createMetricHTML(label, value, cssClass = '') {
     <div class="metric">
         <span class="metric-label">${label}</span>
         <span class="metric-value ${cssClass}">${value}</span>
+    </div>
+  `;
+}
+
+/**
+ * Génère le HTML de la section des recommandations enrichies
+ * @param {Array} recommendations - Liste des recommandations
+ * @returns {string} HTML de la section
+ */
+function generateRecommendationsHTML(recommendations) {
+  // Vérifier si des recommandations existent
+  if (!recommendations || !Array.isArray(recommendations) || recommendations.length === 0) {
+    return `
+      <div class="recommendations-section">
+        <h2 class="section-title">💡 Recommandations Prioritaires</h2>
+        <p class="section-intro">✨ Aucune recommandation critique. Excellent travail !</p>
+      </div>
+    `;
+  }
+
+  // Fonction helper pour obtenir la couleur selon la priorité
+  const getPriorityColor = (priority) => {
+    const colors = {
+      'critique': '#ef4444',
+      'important': '#f59e0b',
+      'moyen': '#3b82f6'
+    };
+    return colors[priority?.toLowerCase()] || '#3b82f6';
+  };
+
+  // Générer les cartes de recommandations
+  const recommendationCards = recommendations.map((rec, index) => {
+    const color = getPriorityColor(rec.priority);
+    const number = index + 1;
+
+    // Générer le HTML pour les tips (si présents)
+    let tipsHTML = '';
+    if (rec.tips && Array.isArray(rec.tips) && rec.tips.length > 0) {
+      tipsHTML = `
+        <div class="rec-tips">
+          <strong>💡 Conseils pratiques:</strong>
+          <ul>
+            ${rec.tips.map(tip => `<li>${tip}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    // Générer le HTML pour les ressources (si présentes)
+    let resourcesHTML = '';
+    if (rec.resources && Array.isArray(rec.resources) && rec.resources.length > 0) {
+      resourcesHTML = `
+        <div class="rec-resources">
+          <strong>📚 Ressources:</strong>
+          <ul>
+            ${rec.resources.map(resource => `<li>${resource}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="recommendation-card" style="border-left: 4px solid ${color};">
+        <div class="rec-header">
+          <span class="rec-priority" style="background: ${color};">${rec.priority || 'Moyen'}</span>
+          <span class="rec-category">${rec.category || 'Général'}</span>
+        </div>
+        <h3 class="rec-title">${number}. ${rec.title || 'Sans titre'}</h3>
+        <div class="rec-description">${rec.description || ''}</div>
+
+        ${rec.impact ? `
+        <div class="rec-impact">
+          <strong>📊 Impact:</strong>
+          <p>${rec.impact}</p>
+        </div>
+        ` : ''}
+
+        ${rec.action ? `
+        <div class="rec-action">
+          <strong>🎯 Action recommandée:</strong>
+          <p>${rec.action}</p>
+        </div>
+        ` : ''}
+
+        ${tipsHTML}
+
+        ${rec.bestPractices ? `
+        <div class="rec-best-practices">
+          <strong>✅ Best practices:</strong>
+          <p>${rec.bestPractices}</p>
+        </div>
+        ` : ''}
+
+        ${resourcesHTML}
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="recommendations-section">
+      <h2 class="section-title">💡 Recommandations Prioritaires</h2>
+      <p class="section-intro">Conseils d'experts pour améliorer votre référencement, conversions et expérience utilisateur.</p>
+      ${recommendationCards}
     </div>
   `;
 }

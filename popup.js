@@ -7,6 +7,7 @@ let currentResults = null;
 
 // Éléments du DOM
 const analyzeBtn = document.getElementById('analyzeBtn');
+const reanalyzeBtn = document.getElementById('reanalyzeBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
 const loader = document.getElementById('loader');
 const globalScore = document.getElementById('globalScore');
@@ -15,28 +16,40 @@ const results = document.getElementById('results');
 const analyzedUrl = document.getElementById('analyzedUrl');
 
 // Lancement de l'analyse
-analyzeBtn.addEventListener('click', startAnalysis);
+analyzeBtn.addEventListener('click', () => startAnalysis(false));
+if (reanalyzeBtn) {
+  reanalyzeBtn.addEventListener('click', () => startAnalysis(true));
+}
 exportPdfBtn.addEventListener('click', exportToPDF);
 
-async function startAnalysis() {
-  console.log('🔍 Démarrage de l\'analyse...');
+async function startAnalysis(forceRefresh = false) {
+  console.log(`🔍 ${forceRefresh ? 'Nouvelle analyse forcée' : 'Démarrage de l\'analyse'}...`);
   showLoader();
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    chrome.tabs.sendMessage(tab.id, { action: 'analyzePage' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Erreur:', chrome.runtime.lastError);
-        showError('Impossible d\'analyser cette page. Rechargez-la et réessayez.');
-        return;
-      }
+    chrome.tabs.sendMessage(
+      tab.id,
+      { action: 'analyzePage', forceRefresh: forceRefresh },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Erreur:', chrome.runtime.lastError);
+          showError('Impossible d\'analyser cette page. Rechargez-la et réessayez.');
+          return;
+        }
 
-      if (response) {
-        currentResults = response;
-        displayResults(response);
+        if (response) {
+          currentResults = response;
+          displayResults(response);
+
+          // Afficher le bouton réanalyser
+          if (reanalyzeBtn) {
+            reanalyzeBtn.style.display = 'flex';
+          }
+        }
       }
-    });
+    );
   } catch (error) {
     console.error('Erreur:', error);
     showError('Une erreur est survenue.');
@@ -50,6 +63,7 @@ function showLoader() {
   results.style.display = 'none';
   analyzedUrl.style.display = 'none';
   exportPdfBtn.style.display = 'none';
+  if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
   analyzeBtn.disabled = true;
 }
 
