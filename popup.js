@@ -9,6 +9,7 @@ let currentResults = null;
 const analyzeBtn = document.getElementById('analyzeBtn');
 const reanalyzeBtn = document.getElementById('reanalyzeBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
+const settingsBtn = document.getElementById('settingsBtn');
 const loader = document.getElementById('loader');
 const globalScore = document.getElementById('globalScore');
 const recommendations = document.getElementById('recommendations');
@@ -21,6 +22,13 @@ if (reanalyzeBtn) {
   reanalyzeBtn.addEventListener('click', () => startAnalysis(true));
 }
 exportPdfBtn.addEventListener('click', exportToPDF);
+
+// Ouvrir la page de configuration
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+  });
+}
 
 async function startAnalysis(forceRefresh = false) {
   console.log(`🔍 ${forceRefresh ? 'Nouvelle analyse forcée' : 'Démarrage de l\'analyse'}...`);
