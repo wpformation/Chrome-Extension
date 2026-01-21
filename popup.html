@@ -72,7 +72,8 @@
         <!-- Loader / Indicateur de chargement -->
         <div id="loader" class="loader" style="display: none;">
             <div class="spinner"></div>
-            <p>Analyse en cours...</p>
+            <p id="loaderMessage">Analyse en cours...</p>
+            <p id="loaderStatus" style="font-size: 12px; opacity: 0.7; margin-top: 8px;"></p>
         </div>
 
         <!-- Score global -->
@@ -294,6 +295,10 @@
         <div id="analyzedUrl" class="analyzed-url" style="display: none;">
             <span class="url-label">URL analysée:</span>
             <span id="currentUrl" class="url-text"></span>
+            <div style="margin-top: 8px; font-size: 11px; opacity: 0.7; display: flex; gap: 10px; flex-wrap: wrap;">
+                <span id="analysisTimestamp"></span>
+                <span id="analysisCacheIndicator" style="display: none;">📦 Depuis le cache</span>
+            </div>
         </div>
 
     </div>

@@ -5,43 +5,93 @@
 // Charger les résultats depuis le storage ou demander une analyse
 async function loadAdvancedData() {
   try {
-    // Récupérer l'onglet actif
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Récupérer l'ID de l'onglet analysé depuis le storage
+    chrome.storage.local.get(['analyzedTabId'], (result) => {
+      const tabId = result.analyzedTabId;
 
-    // Envoyer message pour obtenir les résultats
-    chrome.tabs.sendMessage(
-      tab.id,
-      { action: 'analyzePage', forceRefresh: false, useAI: false },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Erreur:', chrome.runtime.lastError);
-          showError();
-          return;
-        }
-
-        if (response && !response.error) {
-          displayAdvancedData(response);
-        } else {
-          showError();
-        }
+      if (!tabId) {
+        console.error('Aucun onglet analysé trouvé');
+        showError('Aucune analyse en cours. Veuillez d\'abord analyser une page depuis la popup.');
+        return;
       }
-    );
+
+      // Envoyer message à l'onglet analysé (pas l'onglet actif!)
+      chrome.tabs.sendMessage(
+        tabId,
+        { action: 'analyzePage', forceRefresh: false, useAI: false },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Erreur:', chrome.runtime.lastError);
+            showError('Impossible de communiquer avec la page analysée. Elle a peut-être été fermée.');
+            return;
+          }
+
+          if (response && !response.error) {
+            displayAdvancedData(response);
+          } else {
+            showError('Aucune donnée d\'analyse disponible.');
+          }
+        }
+      );
+    });
   } catch (error) {
     console.error('Erreur chargement données:', error);
-    showError();
+    showError('Une erreur est survenue lors du chargement.');
   }
 }
 
-function showError() {
+function showError(message = 'Impossible de charger les données d\'analyse. Veuillez fermer cette fenêtre et relancer une analyse.') {
   document.body.innerHTML += `
     <div style="text-align: center; padding: 40px; color: #ef4444;">
       <h3>Erreur de chargement</h3>
-      <p>Impossible de charger les données d'analyse. Veuillez fermer cette fenêtre et relancer une analyse.</p>
+      <p>${message}</p>
     </div>
   `;
 }
 
 function displayAdvancedData(data) {
+  // === AFFICHER METADATA (méthode d'analyse, timestamp, cache) ===
+  const methodBadge = document.getElementById('analysisMethodBadge');
+  const methodIcon = document.getElementById('methodIcon');
+  const methodText = document.getElementById('methodText');
+  const timestampText = document.getElementById('timestampText');
+  const cacheBadge = document.getElementById('cacheBadge');
+
+  // Méthode d'analyse
+  if (data.analysisMethod) {
+    const isAI = data.analysisMethod.includes('AI');
+    methodIcon.textContent = isAI ? '🤖' : '💻';
+    methodText.textContent = data.analysisMethod;
+    methodBadge.className = `meta-badge ${isAI ? 'ai-mode' : 'code-mode'}`;
+  }
+
+  // Timestamp
+  if (data.timestamp) {
+    const date = new Date(data.timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+
+    let timeText;
+    if (diffMins < 1) {
+      timeText = 'À l\'instant';
+      cacheBadge.style.display = 'none';
+    } else if (diffMins < 60) {
+      timeText = `Il y a ${diffMins} min`;
+      cacheBadge.style.display = 'inline-flex';
+    } else if (diffMins < 1440) {
+      const hours = Math.floor(diffMins / 60);
+      timeText = `Il y a ${hours}h${diffMins % 60 > 0 ? ' ' + (diffMins % 60) + 'min' : ''}`;
+      cacheBadge.style.display = 'inline-flex';
+    } else {
+      const days = Math.floor(diffMins / 1440);
+      timeText = `Il y a ${days} jour${days > 1 ? 's' : ''}`;
+      cacheBadge.style.display = 'inline-flex';
+    }
+
+    timestampText.textContent = timeText;
+  }
+
   // === ANALYSE SÉMANTIQUE ===
   if (data.semanticContent) {
     const sc = data.semanticContent;

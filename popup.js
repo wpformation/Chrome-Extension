@@ -33,17 +33,42 @@ if (settingsBtn) {
 
 // Ouvrir la page d'analyses avancées
 if (advancedBtn) {
-  advancedBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('advanced.html') });
+  advancedBtn.addEventListener('click', async () => {
+    // Récupérer l'onglet actuellement analysé
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Sauvegarder l'ID de l'onglet analysé dans le storage
+    chrome.storage.local.set({ analyzedTabId: tab.id }, () => {
+      // Ouvrir la page advanced.html
+      chrome.tabs.create({ url: chrome.runtime.getURL('advanced.html') });
+    });
   });
 }
 
 async function startAnalysis(forceRefresh = false) {
   console.log(`🔍 ${forceRefresh ? 'Nouvelle analyse forcée' : 'Démarrage de l\'analyse'}...`);
-  showLoader();
+  showLoader('Initialisation de l\'analyse...', '🔍 Vérification de la page');
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Étape 1: Vérification clé API
+    chrome.storage.local.get(['claudeApiKey'], (result) => {
+      const hasApiKey = result.claudeApiKey && result.claudeApiKey.trim().length > 0;
+
+      if (hasApiKey && !forceRefresh) {
+        updateLoaderStatus('🤖 Tentative d\'analyse IA avec Claude...');
+      } else if (!hasApiKey) {
+        updateLoaderStatus('💻 Mode Code (configurez l\'API pour l\'analyse IA)');
+      } else {
+        updateLoaderStatus('💻 Analyse code en cours...');
+      }
+    });
+
+    // Étape 2: Envoi message
+    setTimeout(() => {
+      updateLoaderStatus('📊 Analyse de la structure SEO, Marketing et UX...');
+    }, 500);
 
     chrome.tabs.sendMessage(
       tab.id,
@@ -79,7 +104,13 @@ async function startAnalysis(forceRefresh = false) {
   }
 }
 
-function showLoader() {
+function showLoader(message = 'Analyse en cours...', status = '') {
+  const loaderMessage = document.getElementById('loaderMessage');
+  const loaderStatus = document.getElementById('loaderStatus');
+
+  if (loaderMessage) loaderMessage.textContent = message;
+  if (loaderStatus) loaderStatus.textContent = status;
+
   loader.style.display = 'flex';
   globalScore.style.display = 'none';
   recommendations.style.display = 'none';
@@ -88,6 +119,13 @@ function showLoader() {
   exportPdfBtn.style.display = 'none';
   if (reanalyzeBtn) reanalyzeBtn.style.display = 'none';
   analyzeBtn.disabled = true;
+}
+
+function updateLoaderStatus(status) {
+  const loaderStatus = document.getElementById('loaderStatus');
+  if (loaderStatus) {
+    loaderStatus.textContent = status;
+  }
 }
 
 function hideLoader() {
@@ -127,6 +165,41 @@ function displayResults(data) {
 
   // URL analysée
   document.getElementById('currentUrl').textContent = data.url;
+
+  // Timestamp et indicateur cache
+  const timestampEl = document.getElementById('analysisTimestamp');
+  const cacheIndicatorEl = document.getElementById('analysisCacheIndicator');
+
+  if (data.timestamp) {
+    const date = new Date(data.timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+
+    let timeText;
+    let showCacheIndicator = false;
+
+    if (diffMins < 1) {
+      timeText = '🕐 À l\'instant';
+    } else if (diffMins < 60) {
+      timeText = `🕐 Il y a ${diffMins} min`;
+      showCacheIndicator = true;
+    } else if (diffMins < 1440) {
+      const hours = Math.floor(diffMins / 60);
+      timeText = `🕐 Il y a ${hours}h`;
+      showCacheIndicator = true;
+    } else {
+      const days = Math.floor(diffMins / 1440);
+      timeText = `🕐 Il y a ${days} jour${days > 1 ? 's' : ''}`;
+      showCacheIndicator = true;
+    }
+
+    timestampEl.textContent = timeText;
+    if (cacheIndicatorEl) {
+      cacheIndicatorEl.style.display = showCacheIndicator ? 'inline' : 'none';
+    }
+  }
+
   analyzedUrl.style.display = 'block';
 
   // Afficher toutes les sections
