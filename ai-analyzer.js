@@ -156,7 +156,7 @@ async function sendToClaudeAPI(apiKey, pageContent) {
 
   console.log('📤 Envoi requête via background service worker');
   console.log('🔑 Clé API utilisée:', apiKey.substring(0, 15) + '...');
-  console.log('📊 Model: claude-3-5-sonnet-20240620');
+  console.log('📊 Model: claude-3-5-sonnet-20241022');
 
   try {
     // Envoyer la requête au background service worker
@@ -289,7 +289,7 @@ function parseAIResponse(aiResponse) {
       url: window.location.href,
       timestamp: new Date().toISOString(),
       analyzedBy: 'Claude AI (Anthropic)',
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-3-5-sonnet-20241022',
       ...analysis
     };
 
@@ -302,7 +302,7 @@ function parseAIResponse(aiResponse) {
       url: window.location.href,
       timestamp: new Date().toISOString(),
       analyzedBy: 'Claude AI (Anthropic)',
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-3-5-sonnet-20241022',
       error: 'Erreur de parsing: ' + error.message,
       rawResponse: aiResponse.substring(0, 500)
     };
