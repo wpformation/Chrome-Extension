@@ -16,6 +16,10 @@ const globalScore = document.getElementById('globalScore');
 const recommendations = document.getElementById('recommendations');
 const results = document.getElementById('results');
 const analyzedUrl = document.getElementById('analyzedUrl');
+const apiKeyIndicator = document.getElementById('apiKeyIndicator');
+
+// Vérifier la clé API au chargement
+checkApiKeyStatus();
 
 // Lancement de l'analyse
 analyzeBtn.addEventListener('click', () => startAnalysis(false));
@@ -729,6 +733,65 @@ function exportToPDF() {
     generatePDFReport(currentResults);
   } else {
     console.error('Fonction generatePDFReport non disponible');
+  }
+}
+
+/* ========================================
+   GESTION CLÉ API
+   ======================================== */
+
+/**
+ * Vérifie le statut de la clé API et affiche l'indicateur
+ */
+async function checkApiKeyStatus() {
+  try {
+    const result = await chrome.storage.local.get(['claudeApiKey', 'apiKeyJustConfigured']);
+    const hasApiKey = result.claudeApiKey && result.claudeApiKey.trim().length > 0;
+
+    if (hasApiKey) {
+      // Clé API configurée - Mode IA activé
+      apiKeyIndicator.innerHTML = '✅ <strong>Analyse IA activée</strong> - Clé API configurée';
+      apiKeyIndicator.style.display = 'block';
+      apiKeyIndicator.style.background = '#d1fae5';
+      apiKeyIndicator.style.border = '2px solid #10b981';
+      apiKeyIndicator.style.color = '#065f46';
+
+      // Si la clé vient d'être configurée, forcer une réanalyse
+      if (result.apiKeyJustConfigured) {
+        console.log('🔄 Nouvelle clé API détectée - Lancement automatique de l\'analyse IA...');
+
+        // Retirer le flag
+        await chrome.storage.local.remove('apiKeyJustConfigured');
+
+        // Afficher un message
+        apiKeyIndicator.innerHTML = '✅ <strong>Clé API configurée !</strong> Lancement de l\'analyse IA en cours...';
+
+        // Lancer automatiquement l'analyse (forceRefresh = true)
+        setTimeout(() => {
+          startAnalysis(true);
+        }, 500);
+      }
+    } else {
+      // Pas de clé API - Mode Code uniquement
+      apiKeyIndicator.innerHTML = '⚠️ <strong>Mode Code actif</strong> - <a href="#" id="configureApiLink" style="color: #2563eb; text-decoration: underline;">Configurez votre clé API</a> pour activer l\'analyse IA';
+      apiKeyIndicator.style.display = 'block';
+      apiKeyIndicator.style.background = '#fef3c7';
+      apiKeyIndicator.style.border = '2px solid #f59e0b';
+      apiKeyIndicator.style.color = '#92400e';
+
+      // Ajouter le handler pour le lien
+      setTimeout(() => {
+        const configLink = document.getElementById('configureApiLink');
+        if (configLink) {
+          configLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+          });
+        }
+      }, 100);
+    }
+  } catch (error) {
+    console.error('Erreur vérification clé API:', error);
   }
 }
 

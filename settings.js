@@ -34,8 +34,17 @@ settingsForm.addEventListener('submit', async (e) => {
     // Stocker la clé de manière sécurisée
     await chrome.storage.local.set({ claudeApiKey: apiKey });
 
+    // Marquer qu'une nouvelle clé a été configurée (pour forcer le refresh du cache)
+    await chrome.storage.local.set({ apiKeyJustConfigured: true });
+
     showSuccess('Clé API sauvegardée avec succès! ✅');
     updateStatus(true);
+
+    // Afficher les instructions
+    document.getElementById('instructionsAfterSave').style.display = 'block';
+
+    // Scroller vers les instructions
+    document.getElementById('instructionsAfterSave').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Vider le champ après sauvegarde
     apiKeyInput.value = '';
