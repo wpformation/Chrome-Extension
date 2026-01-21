@@ -80,12 +80,16 @@ body {
   color: white;
   padding: 20px 24px;
   box-shadow: var(--shadow-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .header-content {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
 }
 
 .header-title {
@@ -106,6 +110,30 @@ body {
   font-weight: 400;
   opacity: 0.95;
   margin-left: 34px;
+}
+
+.settings-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.settings-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
+}
+
+.settings-btn:active {
+  transform: rotate(90deg) scale(0.95);
 }
 
 /* ========================================
@@ -234,6 +262,67 @@ body {
   font-size: 14px;
   color: var(--slate-600);
   font-weight: 500;
+}
+
+/* ========================================
+   ANALYSE GLOBALE IA
+   ======================================== */
+
+.global-analysis-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.analysis-method-badge {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--primary-700);
+  font-weight: 600;
+}
+
+.analysis-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--slate-900);
+  margin-bottom: 12px;
+}
+
+.analysis-content {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--slate-700);
+}
+
+.analysis-content p {
+  margin-bottom: 10px;
+}
+
+.pillar-analysis-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--slate-50);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary-500);
+}
+
+.pillar-analysis-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--slate-800);
+  margin-bottom: 10px;
+}
+
+.pillar-analysis-section .analysis-content {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--slate-600);
 }
 
 /* ========================================

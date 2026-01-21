@@ -60,34 +60,64 @@ async function saveAnalysisToCache(url, results) {
 /**
  * Fonction principale d'audit qui orchestre toutes les analyses
  * @param {boolean} forceRefresh - Force une nouvelle analyse même si cache disponible
+ * @param {boolean} useAI - Utilise l'analyse IA via Claude (par défaut: true)
  * @returns {Promise<Object>} Résultats complets de l'audit avec recommandations
  */
-async function performCompleteAudit(forceRefresh = false) {
+async function performCompleteAudit(forceRefresh = false, useAI = true) {
   const url = window.location.href;
 
   // Vérifier le cache si pas de forceRefresh
   if (!forceRefresh) {
     const cached = await getCachedAnalysis(url);
     if (cached) {
+      console.log('📦 Analyse chargée depuis le cache');
       return cached;
     }
   }
-  console.log('🚀 Démarrage de l\'analyse professionnelle ultra-complète...');
+
+  // TENTATIVE ANALYSE IA (si useAI=true et fonction disponible)
+  if (useAI && typeof analyzePageWithAI === 'function') {
+    try {
+      console.log('🤖 Démarrage de l\'analyse IA avec Claude Sonnet 3.5...');
+      const aiResults = await analyzePageWithAI();
+
+      // Ajouter les détections techniques (cache, CMS, Core Web Vitals)
+      aiResults.cms = detectCMS();
+      aiResults.cache = detectCache();
+      aiResults.technologies = detectTechnologies();
+      aiResults.coreWebVitals = measureCoreWebVitals();
+      aiResults.analysisMethod = 'AI (Claude Sonnet 3.5)';
+
+      // Sauvegarder dans le cache
+      await saveAnalysisToCache(url, aiResults);
+
+      console.log('✅ Analyse IA terminée avec succès:', aiResults);
+      return aiResults;
+
+    } catch (error) {
+      console.warn('⚠️ Analyse IA échouée, fallback vers analyse code:', error.message);
+      // Continue vers analyse code classique
+    }
+  }
+
+  // FALLBACK: ANALYSE CODE CLASSIQUE
+  console.log('🚀 Démarrage de l\'analyse code classique...');
 
   const results = {
     url: window.location.href,
     timestamp: new Date().toISOString(),
+    analysisMethod: 'Code Analysis (Fallback)',
     seo: analyzeSEO(),
     marketing: analyzeMarketing(),
     ux: analyzeUX(),
 
-    // NOUVELLES ANALYSES TECHNIQUES
+    // ANALYSES TECHNIQUES
     cms: detectCMS(),
     cache: detectCache(),
     technologies: detectTechnologies(),
     coreWebVitals: measureCoreWebVitals(),
 
-    recommendations: [] // Recommandations prioritaires
+    recommendations: []
   };
 
   // Calcul des scores
@@ -103,7 +133,7 @@ async function performCompleteAudit(forceRefresh = false) {
   // Génération des recommandations prioritaires
   results.recommendations = generateRecommendations(results);
 
-  console.log('✅ Analyse ultra-complète terminée:', results);
+  console.log('✅ Analyse code terminée:', results);
 
   // Sauvegarder dans le cache
   await saveAnalysisToCache(url, results);

@@ -14,13 +14,8 @@ function generatePDFReport(results) {
   // Créer le contenu HTML du rapport
   const reportHTML = createReportHTML(results);
 
-  // Méthode 1: Utiliser jsPDF si disponible (via CDN)
-  if (typeof window.jspdf !== 'undefined') {
-    generateWithJsPDF(reportHTML, results);
-  } else {
-    // Méthode 2: Télécharger un fichier HTML stylisé
-    downloadHTMLReport(reportHTML, results);
-  }
+  // Ouvrir dans une nouvelle fenêtre et déclencher l'impression PDF
+  printToPDF(reportHTML, results);
 }
 
 /**
@@ -209,6 +204,115 @@ function createReportHTML(results) {
             color: #6366f1;
         }
 
+        .analysis-method {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        .global-analysis {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 5px solid #6366f1;
+        }
+
+        .global-analysis h3 {
+            font-size: 20px;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .global-analysis p {
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 12px;
+        }
+
+        .pillar-analysis {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .pillar-analysis h4 {
+            font-size: 16px;
+            color: #1e293b;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .pillar-analysis p {
+            color: #475569;
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .swot-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .swot-box {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+
+        .swot-box.strengths {
+            border-left-color: #10b981;
+        }
+
+        .swot-box.weaknesses {
+            border-left-color: #ef4444;
+        }
+
+        .swot-box.opportunities {
+            border-left-color: #3b82f6;
+        }
+
+        .swot-box h5 {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .swot-box.strengths h5 {
+            color: #10b981;
+        }
+
+        .swot-box.weaknesses h5 {
+            color: #ef4444;
+        }
+
+        .swot-box.opportunities h5 {
+            color: #3b82f6;
+        }
+
+        .swot-box ul {
+            margin-left: 15px;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .swot-box li {
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+
         .recommendations-section {
             margin-top: 40px;
             page-break-before: auto;
@@ -312,12 +416,27 @@ function createReportHTML(results) {
             <p class="date">Généré le ${date}</p>
         </div>
 
+        ${results.analysisMethod ? `
+        <!-- Méthode d'analyse -->
+        <div class="analysis-method">
+            ${results.analysisMethod.includes('AI') ? '🤖' : '💻'} Méthode d'analyse: ${results.analysisMethod}
+        </div>
+        ` : ''}
+
         <!-- Score Global -->
         <div class="global-score">
             <div class="score">${results.globalScore}/100</div>
             <div class="label">Score Global</div>
             <div class="status">${getScoreLabel(results.globalScore)}</div>
         </div>
+
+        ${results.globalAnalysis ? `
+        <!-- Analyse Globale IA -->
+        <div class="global-analysis">
+            <h3>🎯 Analyse Globale par IA</h3>
+            ${formatParagraphs(results.globalAnalysis)}
+        </div>
+        ` : ''}
 
         <!-- Pilier SEO -->
         <div class="pillar">
@@ -333,6 +452,13 @@ function createReportHTML(results) {
                 ${createMetricHTML('Images sans ALT', formatImagesStatus(results.seo.images))}
                 ${createMetricHTML('Balise Canonical', results.seo.canonical.exists ? '✓ Présente' : '⚠ Absente', results.seo.canonical.exists ? 'success' : 'warning')}
             </div>
+            ${results.seo.analysis ? `
+            <div class="pillar-analysis">
+                <h4>📝 Analyse Détaillée</h4>
+                ${formatParagraphs(results.seo.analysis)}
+            </div>
+            ${generateSWOT(results.seo)}
+            ` : ''}
         </div>
 
         <!-- Pilier Marketing -->
@@ -349,6 +475,13 @@ function createReportHTML(results) {
                 ${createMetricHTML('CTA détectés', `${results.marketing.cta.count} CTA trouvés`, results.marketing.cta.count >= 3 ? 'success' : 'warning')}
                 ${createMetricHTML('Réseaux sociaux', `${results.marketing.social.totalFound}/4 réseaux`, results.marketing.social.totalFound >= 3 ? 'success' : 'warning')}
             </div>
+            ${results.marketing.analysis ? `
+            <div class="pillar-analysis">
+                <h4>📝 Analyse Détaillée</h4>
+                ${formatParagraphs(results.marketing.analysis)}
+            </div>
+            ${generateSWOT(results.marketing)}
+            ` : ''}
         </div>
 
         <!-- Pilier UX & Technique -->
@@ -364,6 +497,13 @@ function createReportHTML(results) {
                 ${createMetricHTML('Total de liens', `${results.ux.links.total} liens`, 'success')}
                 ${createMetricHTML('Liens cassés/vides', results.ux.links.broken === 0 ? '✓ Aucun' : `⚠ ${results.ux.links.broken}`, results.ux.links.broken === 0 ? 'success' : 'warning')}
             </div>
+            ${results.ux.analysis ? `
+            <div class="pillar-analysis">
+                <h4>📝 Analyse Détaillée</h4>
+                ${formatParagraphs(results.ux.analysis)}
+            </div>
+            ${generateSWOT(results.ux)}
+            ` : ''}
         </div>
 
         <!-- Recommandations Enrichies -->
@@ -567,35 +707,46 @@ function extractDomain(url) {
    ======================================== */
 
 /**
- * Télécharge le rapport sous forme de fichier HTML
+ * Ouvre le rapport dans une nouvelle fenêtre et déclenche l'impression PDF
  * @param {string} html - Contenu HTML
  * @param {Object} results - Résultats
  */
-function downloadHTMLReport(html, results) {
+function printToPDF(html, results) {
   const domain = extractDomain(results.url);
   const date = new Date().toISOString().split('T')[0];
-  const filename = `audit-${domain}-${date}.html`;
+  const suggestedFilename = `audit-${domain}-${date}.pdf`;
 
-  // Créer un blob avec le contenu HTML
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  console.log('🖨️ Ouverture de la fenêtre d\'impression...');
 
-  // Créer un lien de téléchargement
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
+  // Ouvrir une nouvelle fenêtre
+  const printWindow = window.open('', '_blank', 'width=900,height=800');
 
-  // Déclencher le téléchargement
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  if (!printWindow) {
+    console.error('❌ Impossible d\'ouvrir la fenêtre d\'impression (popup bloqué?)');
+    showNotification('Erreur: Impossible d\'ouvrir la fenêtre d\'impression. Vérifiez que les popups ne sont pas bloqués.');
+    return;
+  }
 
-  // Nettoyer l'URL
-  URL.revokeObjectURL(link.href);
+  // Écrire le contenu HTML dans la nouvelle fenêtre
+  printWindow.document.write(html);
+  printWindow.document.close();
 
-  console.log('✅ Rapport HTML téléchargé:', filename);
+  // Attendre que le contenu soit complètement chargé avant d'imprimer
+  printWindow.onload = function() {
+    // Petit délai pour s'assurer que tout est rendu
+    setTimeout(() => {
+      console.log('✅ Fenêtre chargée, déclenchement de l\'impression...');
 
-  // Notification à l'utilisateur
-  showNotification('Rapport téléchargé avec succès!');
+      // Déclencher la boîte de dialogue d'impression
+      printWindow.print();
+
+      // Message d'aide pour l'utilisateur
+      showNotification(`📄 Fenêtre d'impression ouverte! Nom suggéré: ${suggestedFilename}`);
+
+      // Note: On ne ferme PAS automatiquement la fenêtre pour permettre à l'utilisateur
+      // de réimprimer si besoin, ou d'annuler l'impression
+    }, 250);
+  };
 }
 
 /**
@@ -649,6 +800,71 @@ function showNotification(message) {
       document.head.removeChild(style);
     }, 300);
   }, 3000);
+}
+
+/**
+ * Formate du texte en paragraphes HTML
+ * @param {string} text - Texte à formater (peut contenir plusieurs paragraphes séparés par \n\n)
+ * @returns {string} HTML des paragraphes
+ */
+function formatParagraphs(text) {
+  if (!text) return '';
+
+  // Si le texte contient déjà des balises <p>, le retourner tel quel
+  if (text.includes('<p>')) return text;
+
+  // Sinon, diviser par double saut de ligne et créer des paragraphes
+  const paragraphs = text.split('\n\n').filter(p => p.trim());
+  return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+}
+
+/**
+ * Génère le HTML de la section SWOT (Forces/Faiblesses/Opportunités)
+ * @param {Object} pillarData - Données du pilier (seo, marketing, ou ux)
+ * @returns {string} HTML de la section SWOT
+ */
+function generateSWOT(pillarData) {
+  if (!pillarData) return '';
+
+  const hasStrengths = pillarData.strengths && Array.isArray(pillarData.strengths) && pillarData.strengths.length > 0;
+  const hasWeaknesses = pillarData.weaknesses && Array.isArray(pillarData.weaknesses) && pillarData.weaknesses.length > 0;
+  const hasOpportunities = pillarData.opportunities && Array.isArray(pillarData.opportunities) && pillarData.opportunities.length > 0;
+
+  // Si aucune donnée SWOT, ne rien afficher
+  if (!hasStrengths && !hasWeaknesses && !hasOpportunities) {
+    return '';
+  }
+
+  return `
+    <div class="swot-section">
+      ${hasStrengths ? `
+      <div class="swot-box strengths">
+        <h5>✅ Forces</h5>
+        <ul>
+          ${pillarData.strengths.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+
+      ${hasWeaknesses ? `
+      <div class="swot-box weaknesses">
+        <h5>⚠️ Faiblesses</h5>
+        <ul>
+          ${pillarData.weaknesses.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+
+      ${hasOpportunities ? `
+      <div class="swot-box opportunities">
+        <h5>💡 Opportunités</h5>
+        <ul>
+          ${pillarData.opportunities.map(item => `<li>${item}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 console.log('✅ PDF Export script chargé');
