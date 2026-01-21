@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration - Audit Expert</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            width: 500px;
+            min-height: 400px;
+            padding: 20px;
+        }
+
+        .settings-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--slate-200);
+        }
+
+        .settings-header h1 {
+            font-size: 24px;
+            color: var(--slate-900);
+            margin-bottom: 8px;
+        }
+
+        .settings-header p {
+            font-size: 14px;
+            color: var(--slate-600);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--slate-700);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--slate-300);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-group .help-text {
+            font-size: 13px;
+            color: var(--slate-600);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .form-group .help-text a {
+            color: var(--primary-600);
+            text-decoration: none;
+        }
+
+        .form-group .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            background: var(--success);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message {
+            background: var(--error);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .key-status {
+            padding: 16px;
+            background: var(--slate-50);
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .key-status.configured {
+            background: var(--success-light);
+            border: 2px solid var(--success);
+        }
+
+        .key-status strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--slate-700);
+        }
+
+        .security-note {
+            background: var(--warning-light);
+            border-left: 4px solid var(--warning);
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 24px;
+        }
+
+        .security-note strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--warning-dark);
+        }
+
+        .security-note p {
+            font-size: 13px;
+            color: var(--slate-700);
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-header">
+        <h1>⚙️ Configuration</h1>
+        <p>Configurez votre clé API Claude pour l'analyse IA</p>
+    </div>
+
+    <div id="successMessage" class="success-message"></div>
+    <div id="errorMessage" class="error-message"></div>
+
+    <div id="keyStatus" class="key-status">
+        <strong>Statut:</strong>
+        <span id="statusText">Aucune clé API configurée</span>
+    </div>
+
+    <form id="settingsForm">
+        <div class="form-group">
+            <label for="apiKey">Clé API Claude (Anthropic)</label>
+            <input
+                type="password"
+                id="apiKey"
+                placeholder="sk-ant-api03-..."
+                autocomplete="off"
+                spellcheck="false"
+            >
+            <p class="help-text">
+                Obtenez votre clé API sur <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+                Votre clé est stockée localement de manière sécurisée et n'est jamais partagée.
+            </p>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+                💾 Sauvegarder
+            </button>
+            <button type="button" id="clearBtn" class="btn btn-secondary">
+                🗑️ Supprimer
+            </button>
+        </div>
+    </form>
+
+    <div class="security-note">
+        <strong>🔒 Sécurité & Confidentialité</strong>
+        <p>
+            Votre clé API est stockée uniquement dans votre navigateur (chrome.storage.local) et n'est JAMAIS envoyée ailleurs que vers l'API officielle Claude d'Anthropic.
+            Chaque analyse coûte environ $0.01-0.05 selon la taille de la page.
+            Vous gardez le contrôle total de votre utilisation et pouvez supprimer la clé à tout moment.
+        </p>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>

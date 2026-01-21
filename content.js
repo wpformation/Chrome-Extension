@@ -7,8 +7,10 @@
 // Écoute des messages provenant de la popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'analyzePage') {
-    performCompleteAudit(request.forceRefresh || false).then(results => {
+    performCompleteAudit(request.forceRefresh || false, request.useAI || false).then(results => {
       sendResponse(results);
+    }).catch(error => {
+      sendResponse({ error: error.message });
     });
     return true; // Important pour async
   }
@@ -1991,18 +1993,24 @@ function detectCache() {
     score: 0
   };
 
-  const htmlContent = document.documentElement.innerHTML;
+  // Récupérer tout le HTML y compris commentaires (outerHTML au lieu de innerHTML)
+  const htmlContent = document.documentElement.outerHTML;
 
   // === CACHE WORDPRESS ===
 
-  // LiteSpeed Cache
+  // LiteSpeed Cache - Détection ULTRA-ROBUSTE
   const lsCache = document.documentElement.getAttribute('data-lscache-rand') ||
                   htmlContent.includes('LiteSpeed Cache') ||
-                  htmlContent.includes('lscache');
+                  htmlContent.includes('lscache') ||
+                  htmlContent.includes('Page optimized by LiteSpeed') ||
+                  htmlContent.includes('Page cached by LiteSpeed') ||
+                  htmlContent.includes('QUIC.cloud') ||
+                  document.querySelector('link[href*="lscache"]') ||
+                  document.querySelector('script[src*="lscache"]');
   if (lsCache) {
     cache.detected.push('LiteSpeed Cache');
-    cache.details.litespeed = 'Cache serveur haute performance';
-    cache.confidence.litespeed = document.documentElement.getAttribute('data-lscache-rand') ? 100 : 90;
+    cache.details.litespeed = 'Cache serveur haute performance + QUIC.cloud CDN';
+    cache.confidence.litespeed = document.documentElement.getAttribute('data-lscache-rand') ? 100 : 95;
   }
 
   // WP Rocket
