@@ -10,6 +10,7 @@ const analyzeBtn = document.getElementById('analyzeBtn');
 const reanalyzeBtn = document.getElementById('reanalyzeBtn');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
 const settingsBtn = document.getElementById('settingsBtn');
+const advancedBtn = document.getElementById('advancedBtn');
 const loader = document.getElementById('loader');
 const globalScore = document.getElementById('globalScore');
 const recommendations = document.getElementById('recommendations');
@@ -27,6 +28,13 @@ exportPdfBtn.addEventListener('click', exportToPDF);
 if (settingsBtn) {
   settingsBtn.addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+  });
+}
+
+// Ouvrir la page d'analyses avancées
+if (advancedBtn) {
+  advancedBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('advanced.html') });
   });
 }
 
